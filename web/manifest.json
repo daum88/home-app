@@ -1,0 +1,13 @@
+{
+  "name": "Home",
+  "short_name": "Home",
+  "description": "Voice assistant for the home — washer, fridge, ventilation, torrents and fridge inventory.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/static/icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

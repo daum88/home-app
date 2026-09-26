@@ -1,0 +1,65 @@
+name: Home
+options:
+  bundleIdPrefix: com.mattiasdaum
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+targets:
+  Home:
+    type: application
+    platform: iOS
+    sources:
+      - HomeApp
+      - Shared
+    dependencies:
+      - target: HomeWidget
+      - target: ReceiptShare
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattiasdaum.home
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_ALLOWED: "YES"
+        CODE_SIGN_STYLE: "Automatic"
+        DEVELOPMENT_TEAM: C57GFXX5X5
+        INFOPLIST_FILE: HomeApp/Info.plist
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "1.0"
+        ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: "NO"
+  HomeWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - HomeWidget
+      - Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattiasdaum.home.widget
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_ALLOWED: "YES"
+        CODE_SIGN_STYLE: "Automatic"
+        DEVELOPMENT_TEAM: C57GFXX5X5
+        SKIP_INSTALL: "YES"
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: HomeWidget/Info.plist
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+  ReceiptShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ReceiptShare
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattiasdaum.home.receipts
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_ALLOWED: "YES"
+        CODE_SIGN_STYLE: "Automatic"
+        DEVELOPMENT_TEAM: C57GFXX5X5
+        SKIP_INSTALL: "YES"
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: ReceiptShare/Info.plist
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"

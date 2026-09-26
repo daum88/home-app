@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <link rel="apple-touch-icon" href="/static/icon.png" />
+  <link rel="stylesheet" href="/static/app.css" />
+  <title>Home</title>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar" id="topbar">
+      <h1 class="topbar-title" id="topbarTitle">Home</h1>
+      <div class="topbar-actions">
+        <div id="topbarActions" style="display:flex;gap:8px"></div>
+        <button class="icon-btn" id="themeBtn" title="Toggle theme" style="width:36px;height:36px;background:var(--fill-2);color:var(--text)">☀️</button>
+      </div>
+    </header>
+
+    <main class="view" id="view" aria-live="polite"></main>
+
+    <nav class="tab-bar glass" id="tabbar" role="tablist"></nav>
+
+    <div class="toast" id="toast" role="status"></div>
+    <input type="file" id="receiptFile" accept="application/pdf,.pdf" hidden />
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

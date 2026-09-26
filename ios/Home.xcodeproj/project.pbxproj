@@ -1,0 +1,656 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0DCC1E9BE6D8530D1A9C7EC4 /* WasherLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8173EEA7C4ACD6333A484B80 /* WasherLiveActivity.swift */; };
+		17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 352224D39A3938B1CE796D8C /* Shortcuts.swift */; };
+		17E2CDCAC58F0EAC63C6E7D1 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6019896BA2330D3F2F58E1BA /* Server.swift */; };
+		1CC031F8D7F157A9840605CC /* CookModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */; };
+		279515DD10EDED77C8490794 /* WasherAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52084F6485437E5C39A360A /* WasherAttributes.swift */; };
+		2800F6F58885E3CE93565B44 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F79B37DB86C3AE5A5353BDC /* Notifications.swift */; };
+		2A30AB00A48CDC94CFB66235 /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271902500543ABF2D32551DB /* Design.swift */; };
+		2EC786B197385413BAAA5C2F /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 575076678C7AE62B7799CC80 /* ShareViewController.swift */; };
+		309D38140572092491F19360 /* WasherAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52084F6485437E5C39A360A /* WasherAttributes.swift */; };
+		3309CFADD8447D5B81DA12AA /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A119CD81B9A14E68B932B5D9 /* PlayerView.swift */; };
+		3330503F8F9D5CF72B6CD208 /* ShoppingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */; };
+		3833ABA9A55FE1393FD57A9F /* HomeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7355554CA94E7DD487573F /* HomeWidgetBundle.swift */; };
+		49D7E8136C8C7756667ED8CE /* HomeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE57E68052B4BA0C6D78A4E4 /* HomeApp.swift */; };
+		4CC92D00148908E2BF658E4C /* ExpiringWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D632875BD8596D37E8227F /* ExpiringWidget.swift */; };
+		4EDC639383DE561360EA2821 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D26D831E6DE5D3E9115D1BD /* ContentView.swift */; };
+		5021023F6552B445DE400BE3 /* MediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25B8C3FA016032683181EB74 /* MediaView.swift */; };
+		5556185ED870799F638FD053 /* DeviceState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */; };
+		56493F8E658954B8E1B119A1 /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05837D84D1743B0FE17F1E97 /* API.swift */; };
+		5A07D1FCF88A55E800EE21D1 /* DevicesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6391D22FFF305821959213 /* DevicesView.swift */; };
+		774B4E2B98F5B63D9414F9D4 /* DownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13B5DAF04D002C1AD4716E02 /* DownloadManager.swift */; };
+		796B1619831E8CCFB6A6C27E /* WasherLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9574704ADCAAD548E321FF0 /* WasherLiveActivityManager.swift */; };
+		7D379398F09040D9E440EB08 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CA242D0C0EA30BE9402347 /* AppLog.swift */; };
+		8EB39C9DD7899423AC88E3CB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E9F2FFFE2211C0FF4C596A6 /* SettingsView.swift */; };
+		98135ACD5954AABC6B172C41 /* FridgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D4793D9BF31FA3BA301842 /* FridgeView.swift */; };
+		C4EAC8D18D41FFBD5DABE08C /* SpendingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264E21768AB1066F2AEB532B /* SpendingView.swift */; };
+		D0312B19E56F8DBCCA2A8433 /* AssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9539D4B57548F14E61AA94F /* AssistantView.swift */; };
+		D26DFCAC69C491ED22E15D66 /* ElectricityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45715E4550F9E9483F792E97 /* ElectricityWidget.swift */; };
+		E07E830421FBBB0942FE7075 /* HomeWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 929BFBD50EEE7484DF87A122 /* HomeWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E4AD141DA4540BDA98DC7A7D /* WeatherWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D836F3C50E8D7BE00D6887 /* WeatherWidget.swift */; };
+		F3A54FEC530EAC45D48F74F5 /* ReceiptShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 337B1DF9E14F6950975720F9 /* ReceiptShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		38E52084CB27683DC28AE90D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F648A09DF594BC533BCA5FD3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8172BBDD1AE5F3D6D4662B01;
+			remoteInfo = ReceiptShare;
+		};
+		47E5012858E0E248062E59E5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F648A09DF594BC533BCA5FD3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 55F57F4D092A1E6F8C0A415F;
+			remoteInfo = HomeWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D7CD51626074864792232B51 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E07E830421FBBB0942FE7075 /* HomeWidget.appex in Embed Foundation Extensions */,
+				F3A54FEC530EAC45D48F74F5 /* ReceiptShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00D4793D9BF31FA3BA301842 /* FridgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FridgeView.swift; sourceTree = "<group>"; };
+		05837D84D1743B0FE17F1E97 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingView.swift; sourceTree = "<group>"; };
+		11CA242D0C0EA30BE9402347 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
+		13B5DAF04D002C1AD4716E02 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
+		1EB69AE6D5D5B015ABD8500E /* Home.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Home.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		25B8C3FA016032683181EB74 /* MediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaView.swift; sourceTree = "<group>"; };
+		264E21768AB1066F2AEB532B /* SpendingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingView.swift; sourceTree = "<group>"; };
+		271902500543ABF2D32551DB /* Design.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Design.swift; sourceTree = "<group>"; };
+		337B1DF9E14F6950975720F9 /* ReceiptShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ReceiptShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		352224D39A3938B1CE796D8C /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
+		45715E4550F9E9483F792E97 /* ElectricityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElectricityWidget.swift; sourceTree = "<group>"; };
+		575076678C7AE62B7799CC80 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		5D14AA47F8A8A1C8C896A544 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5E9F2FFFE2211C0FF4C596A6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		6019896BA2330D3F2F58E1BA /* Server.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Server.swift; sourceTree = "<group>"; };
+		6D26D831E6DE5D3E9115D1BD /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		6F79B37DB86C3AE5A5353BDC /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		78AB22B863DD3087C5C38D89 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8173EEA7C4ACD6333A484B80 /* WasherLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherLiveActivity.swift; sourceTree = "<group>"; };
+		929BFBD50EEE7484DF87A122 /* HomeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = HomeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A119CD81B9A14E68B932B5D9 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		A52084F6485437E5C39A360A /* WasherAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherAttributes.swift; sourceTree = "<group>"; };
+		AE7355554CA94E7DD487573F /* HomeWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetBundle.swift; sourceTree = "<group>"; };
+		B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceState.swift; sourceTree = "<group>"; };
+		B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookModeView.swift; sourceTree = "<group>"; };
+		C78E5781F69B2E1BAE68C31A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		DE57E68052B4BA0C6D78A4E4 /* HomeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeApp.swift; sourceTree = "<group>"; };
+		E9539D4B57548F14E61AA94F /* AssistantView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AssistantView.swift; sourceTree = "<group>"; };
+		F0D632875BD8596D37E8227F /* ExpiringWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExpiringWidget.swift; sourceTree = "<group>"; };
+		F4D836F3C50E8D7BE00D6887 /* WeatherWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherWidget.swift; sourceTree = "<group>"; };
+		F9574704ADCAAD548E321FF0 /* WasherLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherLiveActivityManager.swift; sourceTree = "<group>"; };
+		FF6391D22FFF305821959213 /* DevicesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevicesView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		156072FA40260C0FBAAE35F3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1EB69AE6D5D5B015ABD8500E /* Home.app */,
+				929BFBD50EEE7484DF87A122 /* HomeWidget.appex */,
+				337B1DF9E14F6950975720F9 /* ReceiptShare.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		47603C0B09395CF52DF7FDC0 /* HomeApp */ = {
+			isa = PBXGroup;
+			children = (
+				05837D84D1743B0FE17F1E97 /* API.swift */,
+				11CA242D0C0EA30BE9402347 /* AppLog.swift */,
+				E9539D4B57548F14E61AA94F /* AssistantView.swift */,
+				6D26D831E6DE5D3E9115D1BD /* ContentView.swift */,
+				B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */,
+				271902500543ABF2D32551DB /* Design.swift */,
+				B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */,
+				FF6391D22FFF305821959213 /* DevicesView.swift */,
+				13B5DAF04D002C1AD4716E02 /* DownloadManager.swift */,
+				00D4793D9BF31FA3BA301842 /* FridgeView.swift */,
+				DE57E68052B4BA0C6D78A4E4 /* HomeApp.swift */,
+				78AB22B863DD3087C5C38D89 /* Info.plist */,
+				25B8C3FA016032683181EB74 /* MediaView.swift */,
+				6F79B37DB86C3AE5A5353BDC /* Notifications.swift */,
+				A119CD81B9A14E68B932B5D9 /* PlayerView.swift */,
+				5E9F2FFFE2211C0FF4C596A6 /* SettingsView.swift */,
+				0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */,
+				352224D39A3938B1CE796D8C /* Shortcuts.swift */,
+				264E21768AB1066F2AEB532B /* SpendingView.swift */,
+				F9574704ADCAAD548E321FF0 /* WasherLiveActivityManager.swift */,
+			);
+			path = HomeApp;
+			sourceTree = "<group>";
+		};
+		69279C86AD1CAA6B386F5658 /* ReceiptShare */ = {
+			isa = PBXGroup;
+			children = (
+				C78E5781F69B2E1BAE68C31A /* Info.plist */,
+				575076678C7AE62B7799CC80 /* ShareViewController.swift */,
+			);
+			path = ReceiptShare;
+			sourceTree = "<group>";
+		};
+		776C566A0104D2DBA16F5DB6 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				A52084F6485437E5C39A360A /* WasherAttributes.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		7EE17195DCED3B55274927B6 = {
+			isa = PBXGroup;
+			children = (
+				47603C0B09395CF52DF7FDC0 /* HomeApp */,
+				B83312A218B55D05B9D36AB3 /* HomeWidget */,
+				69279C86AD1CAA6B386F5658 /* ReceiptShare */,
+				776C566A0104D2DBA16F5DB6 /* Shared */,
+				156072FA40260C0FBAAE35F3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B83312A218B55D05B9D36AB3 /* HomeWidget */ = {
+			isa = PBXGroup;
+			children = (
+				45715E4550F9E9483F792E97 /* ElectricityWidget.swift */,
+				F0D632875BD8596D37E8227F /* ExpiringWidget.swift */,
+				AE7355554CA94E7DD487573F /* HomeWidgetBundle.swift */,
+				5D14AA47F8A8A1C8C896A544 /* Info.plist */,
+				6019896BA2330D3F2F58E1BA /* Server.swift */,
+				8173EEA7C4ACD6333A484B80 /* WasherLiveActivity.swift */,
+				F4D836F3C50E8D7BE00D6887 /* WeatherWidget.swift */,
+			);
+			path = HomeWidget;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		52E844066D197E3B81FA748F /* Home */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B53DD812B90D6329E3432A7A /* Build configuration list for PBXNativeTarget "Home" */;
+			buildPhases = (
+				2B21B3A2EC9193465C060BAD /* Sources */,
+				D7CD51626074864792232B51 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F02F967A555A7189B0DF22CC /* PBXTargetDependency */,
+				60D456C4A6B169F460EE026C /* PBXTargetDependency */,
+			);
+			name = Home;
+			packageProductDependencies = (
+			);
+			productName = Home;
+			productReference = 1EB69AE6D5D5B015ABD8500E /* Home.app */;
+			productType = "com.apple.product-type.application";
+		};
+		55F57F4D092A1E6F8C0A415F /* HomeWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 43DFB666B71AE0D59FC75D37 /* Build configuration list for PBXNativeTarget "HomeWidget" */;
+			buildPhases = (
+				FF7324DA23EA8DB2FD47A7A6 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = HomeWidget;
+			packageProductDependencies = (
+			);
+			productName = HomeWidget;
+			productReference = 929BFBD50EEE7484DF87A122 /* HomeWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		8172BBDD1AE5F3D6D4662B01 /* ReceiptShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 16C9EB82ED3366AE14BBCBBC /* Build configuration list for PBXNativeTarget "ReceiptShare" */;
+			buildPhases = (
+				F6D5E00A13695A97B831FF82 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ReceiptShare;
+			packageProductDependencies = (
+			);
+			productName = ReceiptShare;
+			productReference = 337B1DF9E14F6950975720F9 /* ReceiptShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F648A09DF594BC533BCA5FD3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					52E844066D197E3B81FA748F = {
+						DevelopmentTeam = C57GFXX5X5;
+						ProvisioningStyle = Automatic;
+					};
+					55F57F4D092A1E6F8C0A415F = {
+						DevelopmentTeam = C57GFXX5X5;
+						ProvisioningStyle = Automatic;
+					};
+					8172BBDD1AE5F3D6D4662B01 = {
+						DevelopmentTeam = C57GFXX5X5;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = AA685C1613CFBDFB4ED6BAE7 /* Build configuration list for PBXProject "Home" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7EE17195DCED3B55274927B6;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 156072FA40260C0FBAAE35F3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				52E844066D197E3B81FA748F /* Home */,
+				55F57F4D092A1E6F8C0A415F /* HomeWidget */,
+				8172BBDD1AE5F3D6D4662B01 /* ReceiptShare */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2B21B3A2EC9193465C060BAD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				56493F8E658954B8E1B119A1 /* API.swift in Sources */,
+				7D379398F09040D9E440EB08 /* AppLog.swift in Sources */,
+				D0312B19E56F8DBCCA2A8433 /* AssistantView.swift in Sources */,
+				4EDC639383DE561360EA2821 /* ContentView.swift in Sources */,
+				1CC031F8D7F157A9840605CC /* CookModeView.swift in Sources */,
+				2A30AB00A48CDC94CFB66235 /* Design.swift in Sources */,
+				5556185ED870799F638FD053 /* DeviceState.swift in Sources */,
+				5A07D1FCF88A55E800EE21D1 /* DevicesView.swift in Sources */,
+				774B4E2B98F5B63D9414F9D4 /* DownloadManager.swift in Sources */,
+				98135ACD5954AABC6B172C41 /* FridgeView.swift in Sources */,
+				49D7E8136C8C7756667ED8CE /* HomeApp.swift in Sources */,
+				5021023F6552B445DE400BE3 /* MediaView.swift in Sources */,
+				2800F6F58885E3CE93565B44 /* Notifications.swift in Sources */,
+				3309CFADD8447D5B81DA12AA /* PlayerView.swift in Sources */,
+				8EB39C9DD7899423AC88E3CB /* SettingsView.swift in Sources */,
+				3330503F8F9D5CF72B6CD208 /* ShoppingView.swift in Sources */,
+				17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */,
+				C4EAC8D18D41FFBD5DABE08C /* SpendingView.swift in Sources */,
+				309D38140572092491F19360 /* WasherAttributes.swift in Sources */,
+				796B1619831E8CCFB6A6C27E /* WasherLiveActivityManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F6D5E00A13695A97B831FF82 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2EC786B197385413BAAA5C2F /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FF7324DA23EA8DB2FD47A7A6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D26DFCAC69C491ED22E15D66 /* ElectricityWidget.swift in Sources */,
+				4CC92D00148908E2BF658E4C /* ExpiringWidget.swift in Sources */,
+				3833ABA9A55FE1393FD57A9F /* HomeWidgetBundle.swift in Sources */,
+				17E2CDCAC58F0EAC63C6E7D1 /* Server.swift in Sources */,
+				279515DD10EDED77C8490794 /* WasherAttributes.swift in Sources */,
+				0DCC1E9BE6D8530D1A9C7EC4 /* WasherLiveActivity.swift in Sources */,
+				E4AD141DA4540BDA98DC7A7D /* WeatherWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		60D456C4A6B169F460EE026C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8172BBDD1AE5F3D6D4662B01 /* ReceiptShare */;
+			targetProxy = 38E52084CB27683DC28AE90D /* PBXContainerItemProxy */;
+		};
+		F02F967A555A7189B0DF22CC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 55F57F4D092A1E6F8C0A415F /* HomeWidget */;
+			targetProxy = 47E5012858E0E248062E59E5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		107E655DD088F7ED9F1CAAC5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C57GFXX5X5;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ReceiptShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home.receipts;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		1B0052CC5DCDA316E217CB85 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = NO;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C57GFXX5X5;
+				INFOPLIST_FILE = HomeApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		5B23AD7BA110686AF5014647 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9D099EC742D48FF65B30ADD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C57GFXX5X5;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HomeWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home.widget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		A0D499078A2C717F0427DEEC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = NO;
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C57GFXX5X5;
+				INFOPLIST_FILE = HomeApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		CAECB0B2F965569E8DD2AB80 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C57GFXX5X5;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ReceiptShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home.receipts;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		EBE000C2C15A2514D251F457 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		FF17985DFF8F86077A3C6E6C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = C57GFXX5X5;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HomeWidget/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home.widget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		16C9EB82ED3366AE14BBCBBC /* Build configuration list for PBXNativeTarget "ReceiptShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CAECB0B2F965569E8DD2AB80 /* Debug */,
+				107E655DD088F7ED9F1CAAC5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		43DFB666B71AE0D59FC75D37 /* Build configuration list for PBXNativeTarget "HomeWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9D099EC742D48FF65B30ADD1 /* Debug */,
+				FF17985DFF8F86077A3C6E6C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		AA685C1613CFBDFB4ED6BAE7 /* Build configuration list for PBXProject "Home" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B23AD7BA110686AF5014647 /* Debug */,
+				EBE000C2C15A2514D251F457 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B53DD812B90D6329E3432A7A /* Build configuration list for PBXNativeTarget "Home" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1B0052CC5DCDA316E217CB85 /* Debug */,
+				A0D499078A2C717F0427DEEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F648A09DF594BC533BCA5FD3 /* Project object */;
+}
