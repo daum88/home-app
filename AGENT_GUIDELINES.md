@@ -1,146 +1,267 @@
-# Agent Guidelines — Build the Home Voice Assistant
+# Agent Guidelines — Home Voice Assistant
 
-You are an agent tasked with implementing this project. Follow this document exactly.
-Read `RESEARCH.md` and `PLAN.md` in this folder first — they contain the verified
-API research and the full plan. This file is your working instructions.
+The complete technical reference for anyone (human or AI agent) working on this
+project. Read this before changing anything. Keep it updated as the system
+evolves.
 
-## Context
+---
 
-Build an AI voice assistant for a home, running on a **Raspberry Pi 3 B+ (1 GB RAM, DietPi)**.
-The Pi is at `192.168.8.145` (SSH `root@192.168.8.145`, password in the user's notes — ask if
-needed). Transmission (torrent client) already runs on it. Kodi also runs on it (be RAM-aware).
+## 1. System at a glance
 
-- Phone = mic + speaker (browser Web Speech API for STT, speechSynthesis for TTS — both free)
-- LLM = cloud (OpenAI GPT-4o-mini or Anthropic Claude) with native tool-calling
-- Devices: Samsung washer (SmartThings), Haier fridge (hOn), Systemair SAVE VTR 275
-  ventilation (Modbus, Phase 4), torrents (Transmission + Prowlarr search)
-- Fridge inventory feature (barcode → Open Food Facts → expiry tracking, Phase 5)
+- **Backend**: Raspberry Pi 3 B+ (1 GB RAM), DietPi / Debian 12 (arm64), FastAPI.
+  Always on. Code lives at `/opt/home-voice-assistant`, runs via systemd
+  (`home-voice-assistant`, auto-restart).
+- **iOS app**: SwiftUI (iPhone 16, iOS 27). Built on the Mac, installed over USB.
+- **Mac (laptop)**: runs **Jellyfin** (metadata only) and mounts the Pi's drive
+  over SMB (now via Tailscale). Not required for streaming/downloading.
+- **Networking**: everything talks over **Tailscale** — works from anywhere,
+  no port-forwarding.
 
-## Environment
+### Hardware / IPs
 
-- Python 3.9+ (Pi has 3.x via DietPi), FastAPI + uvicorn + httpx
-- Env vars in `.env` (copy `.env.example`): `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY`),
-  `SMARTTHINGS_PAT`, `HON_USER`, `HON_PASS`, `TRANSMISSION_URL=http://localhost:9091`,
-  `TRANSMISSION_USER/PASS` (may be empty), `PROWLARR_URL`, `PROWLARR_API_KEY`,
-  `MODBUS_HOST` (Phase 4), `OFF_USER_AGENT` (identifying UA string)
-- Run via systemd unit; no Docker on this Pi.
+| Device | LAN IP | Tailscale IP | Notes |
+|---|---|---|---|
+| Pi (backend) | 192.168.8.147 (eth0) | 100.92.219.95 (`dietpi`) | SSH `root` / password `dietpi` |
+| Mac | varies (192.168.8.x / 192.168.0.x) | 100.95.105.68 | runs Jellyfin :8096 |
+| iPhone | — | 100.73.186.123 | app installed via devicectl |
+| Android TV (Kodi) | 192.168.8.137 | — | TCP JSON-RPC :9090 |
+| Ventilation (SaveConnect) | 192.168.8.146 | — | HTTP `/mread`, `/mwrite` |
 
-## Build order (do NOT skip ahead)
+### ⚠️ Two networks (double NAT)
 
-### Phase 0 — prereqs
-1. Create the project structure from `PLAN.md` §2.
-2. `requirements.txt`: fastapi, uvicorn[standard], httpx, pydantic, python-dotenv,
-   transmission-rpc, pyhOn, requests (pymodbus added in Phase 4).
-3. `scripts/install.sh`: create venv, pip install, copy .env.example, install systemd unit.
-4. `scripts/test_tools.py`: CLI that prints, for each configured tool: transmission list,
-   washer status, hOn appliances. Exit 0/1 per tool. This proves integrations BEFORE the LLM.
+The house has **two** routers:
+- **Huawei** `192.168.8.1` — the ISP/main router; Pi/TV/ventilation are wired to it.
+- **TP-Link** `192.168.0.1` — a second router; Mac/iPhone connect to *its* Wi-Fi.
 
-### Phase 1 — core agent + Transmission + washer
-1. `app/tools/base.py`: define a uniform tool interface — every tool returns a sanitized
-   Python dict (never raw API responses), raising typed errors that become friendly text.
-2. `app/tools/transmission.py` — use `transmission-rpc`:
-   - `list_torrents()`, `add_torrent(magnet)`, `torrent_status(name_substr)`
-   - Note: Transmission 4.x → snake_case fields (`percent_done`, `download_dir`)
-3. `app/tools/washer.py` — SmartThings REST (`https://api.smartthings.com`, Bearer PAT):
-   - **VERIFIED: washer device id = `b6d6a88b-8f08-919d-e51d-7f4799882d38`** (component `main`)
-   - `GET /v1/devices/{id}/status` → key fields: `washerOperatingState.machineState`
-     (stop/run/pause), `washerOperatingState.washerJobState`, `washerOperatingState.completionTime`
-     (ISO timestamp — use this for "washer done" notifications), `switch.switch`,
-     `samsungce.washerOperatingState.scheduledJobs` (remaining phase minutes)
-   - `POST /v1/devices/{id}/commands` → start (will fail unless Smart Control pressed —
-     surface that as a friendly message, never a raw error)
-4. `app/llm.py`: chat loop with OpenAI function calling (or Anthropic tool use):
-   - system prompt: short, lists the user's devices and their real names ("your Samsung
-     washer", "your Haier fridge"), instructs concise spoken-style answers
-   - loop: model → tool calls → execute → append results → model → final answer
-   - max 3 tool rounds; always return a text answer
-5. `app/main.py`: FastAPI — `POST /api/chat` (JSON: text, optional history), `GET /` serves
-   `web/index.html` statically.
-6. `web/index.html`: minimal phone-friendly chat UI (text input, message list). No frameworks
-   needed — plain JS + fetch. Dark theme.
+The two subnets can't talk directly. **The permanent fix is putting the TP-Link
+in "Access Point" mode** (or connecting everything to the Huawei's Wi-Fi). Until
+then, always reach the Pi via its **Tailscale IP** (`100.92.219.95`), never the
+LAN IP, because the Mac may be on the wrong subnet.
 
-**Acceptance:** from the phone browser, "is the washer done?" returns the real washer state.
-"add this magnet <magnet>" starts a download in Transmission. `test_tools.py` passes.
+---
 
-### Phase 2 — voice
-1. In `web/index.html`: mic button → `SpeechRecognition` (Web Speech API) → fill input →
-   send → response spoken via `speechSynthesis`.
-2. Handle unsupported browsers (Safari) with a fallback message ("use Chrome").
+## 2. Services (Pi, systemd)
 
-**Acceptance:** full hands-free voice loop from the couch.
+| Service | Port | Data dir | Purpose |
+|---|---|---|---|
+| `home-voice-assistant` | 8000 | `/opt/home-voice-assistant` | the FastAPI backend |
+| `radarr` | 7878 | `/var/lib/radarr` | movie manager (Letterboxd → download) |
+| `prowlarr` | 9696 | `/var/lib/prowlarr` | torrent indexers (YTS + The Pirate Bay) |
+| `transmission-daemon` | 9091 | `/etc/transmission-daemon/settings.json` | downloads (no RPC auth) |
 
-### Phase 3 — torrent search + fridge basics
-1. Install Prowlarr on the Pi (bare install, NOT Docker — RAM). Add rargb.to as indexer.
-   Test WITHOUT FlareSolverr first. If rargb.to fails with 403/Cloudflare: try enabling
-   FlareSolverr ON-DEMAND only (start process → search → stop) — never leave it running.
-2. `app/tools/search.py`: `GET {PROWLARR_URL}/api/v1/search?query=...&type=search`
-   header `X-Api-Key` → return top 5: title, size, seeders, magnetUrl, indexer.
-3. Wire "download movie X" flow: LLM → search_torrents → present candidates → add chosen magnet.
-4. `app/tools/fridge.py` with pyhOn: `fridge_status()` (temps, door), `fridge_set_temp(zone, c)`.
-   Wrap ALL pyhOn calls in try/except; on auth failure return
-   `{"error": "fridge offline (hOn login failed)"}` — agent must still answer gracefully.
-   **hOn login note:** the user's hOn account is Google-linked. pyhOn needs email+password.
-   Before this phase works, the user must define a password for that Gmail via the hOn app's
-   password-reset flow (community-confirmed to work), OR the user creates a fresh
-   email+password hOn account and invites it to the family group.
+Check/restart: `systemctl status|restart <service>`. All four auto-start on boot.
 
-**Acceptance:** "download The Matrix" ends with a real download. Fridge status works.
-Fridge failure does not break other tools.
+### Mac-side
+- **Jellyfin 12.0.0** on :8096 — libraries `Movies` (filmid), `TV Shows` (serials),
+  `Multikad` (cartoons). Reads the Pi's files through the SMB mount `~/PiMedia`.
+- **SMB mount** `~/PiMedia` → Pi `/mnt/ketas` (guest share `Movies`). Auto-remount
+  via launchd agent `~/Library/LaunchAgents/com.mattiasdaum.pimedia.plist`
+  (tries `100.92.219.95` first, then `192.168.8.147`).
 
-### Phase 4 — ventilation (Systemair SAVE VTR 275) — HTTP, no hardware
-1. **First verify the gateway type:** find the SaveConnect gateway's IP on the LAN (check the
-   router's DHCP client list, or try `curl http://saveconnect.home.arpa/menu`). If `GET /menu`
-   returns JSON → it's a SaveConnect **2.0** and has a local REST API. Use it:
-   - `GET /menu` — device info (no auth)
-   - `GET /mread?{"12101":1,...}` — read registers (0-based, value always 1)
-   - `GET /mwrite?{"1130":3}` — write register
-   - Register → meaning map: copy from `antikristian/ha-saveconnect` source
-     (`custom_components/saveconnect/` — sensors/controls/alarms definitions)
-2. `app/tools/ventilation.py`: `ventilation_status()` via /mread (temps, CO2, fan RPM/output %,
-   mode, filter days); `ventilation_set(level)` via /mwrite (user mode / airflow / fan level).
-3. If `/menu` is NOT reachable (SaveConnect 1.0, no REST API) → fall back to Plan B (Modbus):
-   RS485 A/B/GND on the connection board + Elfin EW11 gateway + pymodbus, register map from
-   `maccan-tech/hass-systemair-save` (REG 101 fan speed, REG 207 setpoint). Verify first that
-   the SaveConnect module does not occupy the port.
+---
 
-**Acceptance:** voice command changes the real fan speed/mode.
+## 3. Media storage (`/mnt/ketas`)
 
-### Phase 5 — fridge inventory
-1. `web/index.html`: "scan item" button → camera → `BarcodeDetector` (fallback: zxing-js).
-2. `app/tools/inventory.py`:
-   - `inventory_add(barcode, expires)` → `GET https://world.openfoodfacts.org/api/v2/product/{barcode}.json`
-     (send identifying User-Agent) → store in SQLite (`data/home.db`): name, brands, barcode,
-     expiry date. If OFF unknown → user provides name manually + category shelf-life default.
-   - `inventory_list()`, `inventory_expiring(days=3)`
-3. Expiry input: accept natural language ("friday", "in 5 days", "2026-10-01") — parse with
-   small dateutil logic; photo-OCR of printed date is a later enhancement.
-4. Proactive: a scheduled (cron/systemd timer) check posts "3 items expire soon" into the
-   chat/notifications (ntfy.sh).
+```
+filmid/       movies  (category folders + "Movie (Year)" folders)
+serials/      TV shows (normalized to "Show (Year)/Season N/episodes")
+multikad/     cartoons (Estonian children's films)
+downloads/    Transmission download target
+```
 
-**Acceptance:** scan 5 real groceries → correct products stored → correct expiry alerts.
+- Drive is **NTFS** (≈1 TB). Has some filesystem corruption (see Known issues).
+- The Pi serves files directly: `GET /api/media/stream?path=<path>` with byte-range
+  support. It auto-transcodes **DTS/TrueHD/FLAC/etc. → AAC** (ffmpeg, video copied)
+  so iPhones can play them. Transcoded streams are progressive (no seeking).
 
-### Phase 6 — polish
-- ESP32-S3 + microWakeWord satellite (separate firmware) OR USB mic + openWakeWord if Pi
-  copes; push notifications via ntfy.sh; simple dashboard; write-up.
+### Codec rules (important!)
+- **The TV can't decode 10-bit HEVC/HDR/AV1** — only H.264/x264 plays.
+- **The iPhone plays H.264, HEVC, and 10-bit/HDR fine**, but **not DTS audio**
+  (handled by auto-transcode) and **not XviD/`.avi`** (old SD files).
+- Radarr has a custom-format rule: x264 +10, x265/10-bit/HDR/AV1 −10000, min score 0.
+  This keeps auto-downloads TV-playable.
 
-## Hard rules
+---
 
-0. **Never commit the SmartThings PAT** (currently `56ea9a4e-...` in the user's notes) or any
-   other secret — they live ONLY in `.env` on the Pi.
+## 4. Backend
 
-1. **Never** run FlareSolverr (headless Chrome) permanently on the Pi — 1 GB RAM.
-2. **Never** install Home Assistant — this project is custom FastAPI by design.
-3. Tool handlers must be **non-blocking** (httpx async) and **timeout-bounded** (≤10 s).
-4. Every external API call gets try/except + friendly error dict. One dead API ≠ dead agent.
-5. Secrets ONLY in `.env` (never committed). Ship `.env.example` with placeholders.
-6. Keep answers short and spoken-style ("Your washer has 23 minutes left" not a data dump).
-7. Test each tool standalone via `scripts/test_tools.py` before wiring it to the LLM.
-8. Write no code for a phase until the previous phase passes its acceptance test.
+### Layout
+```
+app/main.py            FastAPI routes + background watchers
+app/config.py          all config, read once from .env
+app/db.py              SQLite helpers (recipes, shopping, history, receipts…)
+app/llm.py             DeepSeek (OpenAI-compatible) client + tool loop
+app/prompts.py         system prompt (answers in Estonian)
+app/speech.py          server-side STT (Groq, optional)
+app/letterboxd.py      Letterboxd watchlist → Radarr sync
+app/tools/*.py         the tool implementations
+app/tools/__init__.py  tool registry (TOOLS dict) — name, schema, handler
+```
 
-## Definition of done (project)
+### Config highlights (`.env`, on the Pi — git-ignored)
+```
+LLM_PROVIDER=openai   LLM_MODEL=deepseek-chat   LLM_BASE_URL=https://api.deepseek.com/v1
+OPENAI_API_KEY=…      (DeepSeek key)
+JELLYFIN_URL=http://100.95.105.68:8096   (Mac's Tailscale IP)
+JELLYFIN_API_KEY=…    JELLYFIN_SMB_PREFIX=/Users/mattiasdaum/PiMedia
+RADARR_URL=http://localhost:7878   RADARR_API_KEY=…
+LETTERBOXD_USER=daum13
+FS_ROOT=/mnt/ketas
+TRANSMISSION_URL=http://localhost:9091
+HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
+```
 
-1. Voice command → real action on torrents + washer + fridge + ventilation
-2. Works from the phone in normal noise, no keyboard
-3. Every integration degrades gracefully when its API is down
-4. One-command install (`scripts/install.sh`) on a fresh Pi
-5. `README.md`: architecture diagram, setup steps, what-broke-and-how-fixed write-up
+### HTTP API (all under the Pi's :8000)
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/api/health` | GET | liveness → `{"ok":true}` |
+| `/api/tools` | GET | list tool names + descriptions |
+| `/api/tools/{name}` | POST | run a tool: body `{"args":{…}}` → `{"ok":bool,"data":…,"error":…}` |
+| `/api/chat` | POST | LLM chat: `{"text","history"}` → `{"reply"}` |
+| `/api/stt` | POST | multipart audio → `{"text"}` (optional Groq STT) |
+| `/api/receipts/import` | POST | multipart PDF → parsed receipt |
+| `/api/log` | POST | receive an error line from the app → `{"message"}` |
+| `/api/jellyfin/image/{item_id}` | GET | proxied poster (disk-cached 7 days) |
+| `/api/media/stream?path=` | GET | stream a movie/episode (Range + DTS→AAC transcode) |
+| `/api/media/subtitles?path=` | GET | `.srt` → WebVTT (Estonian preferred) |
+
+### Tools (≈60, grouped)
+- **Media**: `jellyfin_status/search/recent/resume/library/item_detail/delete/refresh/stream_url/download_url/episodes`, `local_movies`
+- **Downloads**: `list_torrents`, `add_torrent`, `torrent_status/remove/pause/resume/delete`, `search_torrents`, `disk_usage`
+- **Devices**: `washer_status/start/stop/pause`, `fridge_status/set_temp`, `ventilation_status/set/set_temp`, `kodi_*`
+- **Home**: `weather_now/forecast`, `electricity_price`, `shopping_add/list/remove/clear`
+- **Food**: `inventory_*`, `fridge_inventory_*`, `lookup_barcode`, `add_barcode_item`, `suggest_recipes`, `recipe_*`, `import_recipe(_text)`, `update_recipe`, `saved_recipes`
+- **Files/receipts/spending**: `list_files/read_file/search_files`, `import_receipts`, `check_email_receipts`, `spending_stats`, `price_trend`
+- **Automation**: `sync_letterboxd`
+
+### Background watchers (in `main.py` lifespan)
+- receipts: poll `data/receipts/` every 30 s (+ email every 4th tick)
+- `_letterboxd_watcher`: Letterboxd → Radarr every 30 min
+- `_jellyfin_refresh_watcher`: Jellyfin rescan every 10 min
+- warm-up: hOn tokens + fridge + weather on boot
+
+### Deploy backend (from the Mac, works via Tailscale)
+```bash
+cd ~/Desktop/projektid/home-voice-assistant
+rsync -avz -e "sshpass -p dietpi ssh -o StrictHostKeyChecking=no" \
+  app/ root@100.92.219.95:/opt/home-voice-assistant/app/
+sshpass -p dietpi ssh root@100.92.219.95 systemctl restart home-voice-assistant
+```
+**Gotcha**: `app/` files belong in `/opt/home-voice-assistant/app/`, but files from
+`app/tools/` must be rsync'd to `.../app/tools/` (mind the nested path).
+
+---
+
+## 5. iOS app
+
+### Targets & signing
+- `Home` (app), `HomeWidget` (weather + electricity widgets + live activity),
+  `ReceiptShare` (share extension for Coop receipts).
+- Bundle `com.mattiasdaum.home`, team `C57GFXX5X5`, iOS 26 deployment target.
+- Project is **generated by XcodeGen** from `ios/project.yml`.
+  `xcodegen generate` re-creates `Home.xcodeproj` and is safe (team is baked into
+  project.yml). Re-run it after adding new `.swift` files.
+
+### Build & install (Mac, USB)
+```bash
+cd ios
+xattr -cr .   # strip iCloud Finder metadata (Desktop is iCloud-synced → breaks codesign)
+xcodegen generate
+xcodebuild -project Home.xcodeproj -scheme Home -configuration Release \
+  -destination 'platform=iOS,id=<UDID>' -derivedDataPath /tmp/HomeDD \
+  -allowProvisioningUpdates build
+xcrun devicectl device install app --device <UDID> /tmp/HomeDD/Build/Products/Release-iphoneos/Home.app
+xcrun devicectl device process launch --terminate-existing --device <UDID> com.mattiasdaum.home
+```
+- Device UDID: `08AC584F-7C2D-5171-B53C-39894A239516` ("Iti Mari's iPhone").
+- If `devicectl install` is flaky, retry — tunnel can drop.
+- First install after a rebuild may need the device to **trust** the developer
+  (Settings → General → VPN & Device Management).
+
+### Server URLs (API.swift)
+- `defaultBases = [http://100.92.219.95:8000, http://192.168.8.147:8000]` — tries
+  Tailscale first, then home LAN.
+- `API.activeBase` = the address that last answered; used to build stream/image URLs.
+- **ATS**: `Info.plist` has `NSAllowsArbitraryLoads` + `NSExceptionDomains` for
+  `100.92.219.95`, `192.168.8.147`, `100.95.105.68`. On iOS 27, the IP exception
+  domains are what actually allow plain-HTTP (AVPlayer specifically). If you add a
+  new server IP, add it to all three Info.plists (app, widget, share).
+
+### Key files
+```
+HomeApp/API.swift         API client + all models + tool helpers
+HomeApp/Design.swift      Palette (blue/teal), Card, ProgressPill, Haptics, Skeleton
+HomeApp/ContentView.swift 7-tab layout (Assistant, Devices, Media, Fridge, Recipes, Shopping, Settings)
+HomeApp/DevicesView.swift washer/fridge/vent/weather/electricity/torrents cards
+HomeApp/MediaView.swift   poster grid, detail sheet, downloads, episodes, on-device
+HomeApp/PlayerView.swift  AVPlayer + subtitle overlay + loading/error
+HomeApp/DeviceState.swift shared state so tabs don't reload
+HomeApp/DownloadManager.swift / AppLog.swift / Notifications.swift
+```
+
+### Design
+Liquid Glass look: `glassEffect` cards, `Palette.accent` (blue → teal gradient,
+**no purple**), 44 pt touch targets, `PressableButtonStyle` (scale 0.96),
+`Haptics` everywhere. Keep it consistent.
+
+---
+
+## 6. Key workflows
+
+### Letterboxd → movie on the TV
+1. User adds to Letterboxd watchlist (`daum13`).
+2. Backend `_letterboxd_watcher` polls `letterboxd.com/daum13/watchlist/` every
+   30 min, parses `data-item-name`, skips titles already in Jellyfin, and adds the
+   rest to Radarr (`POST /api/v3/movie` with `searchForMovie: true`).
+3. Radarr searches **YTS + The Pirate Bay** (via Prowlarr), grabs H.264 only
+   (custom-format rule), sends to Transmission.
+4. Transmission downloads to `/mnt/ketas/downloads` → Radarr imports/renames into
+   `/mnt/ketas/filmid`.
+5. `_jellyfin_refresh_watcher` rescans Jellyfin every 10 min → visible in app/TV.
+6. Transmission stops seeding immediately after completion (`ratio-limit` 0.01 +
+   `idle-seeding-limit` 0).
+
+### Playing a movie/episode
+- App fetches library (Jellyfin; falls back to `local_movies` filesystem scan if
+  the Mac is off).
+- `Play` → `GET /api/media/stream?path=<path>` — Pi serves the file directly.
+- Subtitles: app fetches `/api/media/subtitles?path=` (WebVTT) and overlays.
+
+### Coop receipt → fridge inventory
+- Share extension uploads the PDF to `/api/receipts/import`, or email/`data/receipts/`
+  watcher imports it. Parser handles the Coop "Tšekk nr" format.
+
+---
+
+## 7. Known issues & gotchas
+
+- **SmartThings PAT expires every 24 h** — washer breaks daily until the user
+  generates a new PAT (`account.smartthings.com/tokens`) and it's put in `.env`.
+  (OAuth is the long-term fix, deferred.)
+- **Double NAT** (see §1): TP-Link should be in AP mode. Until then, use Tailscale.
+- **Mac must be on for Jellyfin metadata/posters** — streaming works without it
+  (Pi serves files; `local_movies` fallback gives titles but no posters).
+- **10-bit HEVC/HDR/AV1** play on iPhone but **not** the TV. Radarr avoids
+  downloading them, but pre-existing files remain (flagged with 🔴 badges).
+- **Transcoded streams (DTS) can't seek** (progressive MP4, no Range). Movies with
+  AAC/AC3 seek normally.
+- **XviD `.avi`** files won't play on iPhone (no transcode for those).
+- **NTFS corruption**: `/mnt/ketas/serials/Sherlock/` has a stale
+  `Fantastic.Beasts…[rarbg]` folder that returns `Input/output error` on delete.
+  Drive may need `chkdsk` on a Windows machine.
+- **Jellyfin v12 gotcha**: the single-item endpoint `GET /Items/{id}` returns 400.
+  Use the list endpoint `GET /Items?Ids={id}&Fields=…` (`_get_item` helper does this).
+- **Codesign** fails if built inside the iCloud-synced Desktop folder — always
+  `xattr -cr .` and use an out-of-tree `-derivedDataPath` (e.g. `/tmp/HomeDD`).
+
+---
+
+## 8. Conventions
+
+- Answers/UI are **Estonian**; STT/TTS use `et-EE`.
+- Tool errors return `{"ok":false,"error":…}` — never raise out of `run_tool`.
+- Cache device data (weather 5 min, electricity 60 s, fridge 180 s, washer 15 s).
+- The LLM only sees tool *schemas*; handlers validate all input (security boundary).
+- Commit changes to git (`master`) and push to `origin` (GitHub `daum88/home-app`).
+- After backend changes: rsync to the Pi + `systemctl restart home-voice-assistant`.
+- After iOS changes: `xcodegen generate` (if new files) → build → `devicectl install`.
