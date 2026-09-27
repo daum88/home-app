@@ -8,6 +8,27 @@ struct PlayerView: View {
     let url: URL
     let subtitleURL: URL?
     let title: String
+    let path: String?
+    let kind: String
+    let image: String?
+    let seriesId: String?
+    let season: Int?
+    let episode: Int?
+
+    init(url: URL, subtitleURL: URL?, title: String,
+         path: String? = nil, kind: String = "movie", image: String? = nil,
+         seriesId: String? = nil, season: Int? = nil, episode: Int? = nil) {
+        self.url = url
+        self.subtitleURL = subtitleURL
+        self.title = title
+        self.path = path
+        self.kind = kind
+        self.image = image
+        self.seriesId = seriesId
+        self.season = season
+        self.episode = episode
+    }
+
     @Environment(\.dismiss) private var dismiss
     @State private var player: AVPlayer?
     @State private var isLoading = true
@@ -15,6 +36,9 @@ struct PlayerView: View {
     @State private var observers: [NSKeyValueObservation] = []
     @State private var subtitleText: String?
     @State private var subtitleTimer: Timer?
+    @State private var resumePosition: Double = 0
+    @State private var didResume = false
+    @State private var saveTimer: Timer?
 
     var body: some View {
         ZStack {
@@ -73,8 +97,10 @@ struct PlayerView: View {
         }
         .onAppear { setup() }
         .onDisappear {
+            saveProgress()
             player?.pause()
             subtitleTimer?.invalidate()
+            saveTimer?.invalidate()
             observers.forEach { $0.invalidate() }
             observers.removeAll()
         }
@@ -91,6 +117,14 @@ struct PlayerView: View {
         attachObservers(to: p)
         p.play()
         if subtitleURL != nil { loadSubtitles() }
+        if let path {
+            startSaveTimer()
+            Task {
+                if let rec = try? await API.playbackGet(path), rec.position > 5 {
+                    await MainActor.run { resumePosition = rec.position }
+                }
+            }
+        }
     }
 
     private func attachObservers(to p: AVPlayer) {
@@ -120,13 +154,42 @@ struct PlayerView: View {
                         AppLog.error("Player failed: \(errorMessage ?? "unknown")")
                         isLoading = false
                     case .readyToPlay:
-                        break
+                        if !didResume, resumePosition > 5 {
+                            let d = item.duration.seconds
+                            if d.isFinite, d > 0, resumePosition < d - 10 {
+                                p.seek(to: CMTime(seconds: resumePosition, preferredTimescale: 600),
+                                       toleranceBefore: .zero, toleranceAfter: .zero)
+                            }
+                            didResume = true
+                        }
                     default:
                         isLoading = true
                     }
                 }
             }
             observers.append(itemObs)
+        }
+    }
+
+    // ── Resume / progress persistence ───────────────────────────────────────
+
+    private func startSaveTimer() {
+        saveTimer?.invalidate()
+        saveTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            saveProgress()
+        }
+    }
+
+    private func saveProgress() {
+        guard let path, let p = player, let item = p.currentItem else { return }
+        let dur = item.duration.seconds
+        guard dur.isFinite, dur > 0 else { return }
+        let pos = p.currentTime().seconds
+        guard pos.isFinite, pos >= 0 else { return }
+        Task {
+            try? await API.playbackSave(path: path, position: pos, duration: dur,
+                                        title: title, kind: kind, image: image,
+                                        seriesId: seriesId, season: season, episode: episode)
         }
     }
 
@@ -212,4 +275,10 @@ struct PlayerPresentation: Identifiable {
     let url: URL
     let subtitleURL: URL?
     let title: String
+    var path: String?
+    var kind: String = "movie"
+    var image: String?
+    var seriesId: String?
+    var season: Int?
+    var episode: Int?
 }

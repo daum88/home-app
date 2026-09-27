@@ -7,10 +7,18 @@ struct MediaView: View {
         case movies, series, downloads, ondevice
     }
     @State private var section: Section = .movies
+    @State private var continueItems: [PlaybackRecord] = []
+    @State private var playerPresentation: PlayerPresentation?
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if !continueItems.isEmpty {
+                    ContinueWatchingRow(items: continueItems, onPlay: { play($0) },
+                                        onChanged: { Task { await loadContinue() } })
+                        .padding(.top, 8)
+                }
+
                 Picker("Section", selection: $section) {
                     Text("Movies").tag(Section.movies)
                     Text("Series").tag(Section.series)
@@ -32,6 +40,117 @@ struct MediaView: View {
             .navigationTitle("Media")
             .navigationBarTitleDisplayMode(.inline)
         }
+        .task { await loadContinue() }
+        .onAppear { Task { await loadContinue() } }
+        .fullScreenCover(item: $playerPresentation) { p in
+            PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title,
+                       path: p.path, kind: p.kind, image: p.image,
+                       seriesId: p.seriesId, season: p.season, episode: p.episode)
+        }
+    }
+
+    private func loadContinue() async {
+        if let r = try? await API.playbackContinue() {
+            continueItems = r.items
+        }
+    }
+
+    private func play(_ rec: PlaybackRecord) {
+        var comps = URLComponents(string: API.activeBase + "/api/media/stream")
+        comps?.queryItems = [URLQueryItem(name: "path", value: rec.path)]
+        guard let url = comps?.url else { return }
+        var sub = URLComponents(string: API.activeBase + "/api/media/subtitles")
+        sub?.queryItems = [URLQueryItem(name: "path", value: rec.path)]
+        Haptics.impact(.medium)
+        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url,
+                                                title: rec.title ?? "", path: rec.path,
+                                                kind: rec.kind ?? "movie", image: rec.image,
+                                                seriesId: rec.seriesId, season: rec.season, episode: rec.episode)
+    }
+}
+
+// ── Continue watching row ──────────────────────────────────────────────────
+
+struct ContinueWatchingRow: View {
+    let items: [PlaybackRecord]
+    let onPlay: (PlaybackRecord) -> Void
+    let onChanged: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Jätka vaatamist").font(.headline).padding(.horizontal, 16)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(items) { rec in
+                        Button { Haptics.impact(); onPlay(rec) } label: {
+                            ContinueCard(rec: rec)
+                        }
+                        .buttonStyle(PressableButtonStyle())
+                        .contextMenu {
+                            Button { Task { await markWatched(rec) } } label: {
+                                Label("Märgi vaadatuks", systemImage: "checkmark")
+                            }
+                            Button { Task { await clearProgress(rec) } } label: {
+                                Label("Alusta uuesti", systemImage: "gobackward")
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func markWatched(_ rec: PlaybackRecord) async {
+        try? await API.playbackMarkWatched(rec.path, watched: true)
+        onChanged()
+    }
+
+    private func clearProgress(_ rec: PlaybackRecord) async {
+        try? await API.playbackMarkWatched(rec.path, watched: false)
+        try? await API.playbackSave(path: rec.path, position: 0, duration: rec.duration,
+                                    title: rec.title ?? "", kind: rec.kind ?? "movie", image: rec.image,
+                                    seriesId: rec.seriesId, season: rec.season, episode: rec.episode)
+        onChanged()
+    }
+}
+
+struct ContinueCard: View {
+    let rec: PlaybackRecord
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            PosterImage(imagePath: rec.image)
+                .frame(width: 120)
+                .overlay(alignment: .bottom) {
+                    GeometryReader { geo in
+                        ZStack(alignment: .leading) {
+                            Rectangle().fill(.black.opacity(0.5))
+                            Rectangle().fill(Palette.accent)
+                                .frame(width: max(0, geo.size.width * progress))
+                        }
+                    }
+                    .frame(height: 3)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Text(rec.title ?? rec.path)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .frame(width: 120, alignment: .leading)
+            Text(remainingLabel)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var progress: Double {
+        rec.duration > 0 ? min(rec.position / rec.duration, 1) : 0
+    }
+
+    private var remainingLabel: String {
+        let left = max(0, Int(rec.duration - rec.position))
+        if left < 3600 { return "\(left / 60) min järel" }
+        return "\(left / 3600) h \(left % 3600 / 60) min järel"
     }
 }
 
@@ -98,12 +217,35 @@ struct PosterImage: View {
 
 struct PosterCell: View {
     let item: JellyfinItem
+    var watched: Bool = false
+    var progress: Double = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             PosterImage(imagePath: item.image)
                 .frame(maxWidth: .infinity)
                 .overlay(alignment: .topLeading) { codecOverlay }
+                .overlay(alignment: .topTrailing) {
+                    if watched {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.white, Palette.accent)
+                            .shadow(color: .black.opacity(0.4), radius: 2)
+                            .padding(6)
+                    }
+                }
+                .overlay(alignment: .bottom) {
+                    if progress > 0.01 && progress < 0.99 {
+                        GeometryReader { geo in
+                            ZStack(alignment: .leading) {
+                                Rectangle().fill(.black.opacity(0.5))
+                                Rectangle().fill(Palette.accent)
+                                    .frame(width: max(0, geo.size.width * progress))
+                            }
+                        }
+                        .frame(height: 3)
+                    }
+                }
 
             Text(item.name)
                 .font(.caption.weight(.semibold))
@@ -143,6 +285,7 @@ struct MediaLibraryView: View {
     @State private var selected: JellyfinItem?
     @State private var selectedSeries: JellyfinItem?
     @State private var searchText = ""
+    @State private var playbackByPath: [String: PlaybackRecord] = [:]
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -179,7 +322,10 @@ struct MediaLibraryView: View {
                                     selected = item
                                 }
                             } label: {
-                                PosterCell(item: item)
+                                let rec = playbackByPath[item.path ?? ""]
+                                PosterCell(item: item,
+                                           watched: rec?.watched ?? false,
+                                           progress: rec.map { $0.duration > 0 ? min($0.position / $0.duration, 1) : 0 } ?? 0)
                             }
                             .buttonStyle(PressableButtonStyle())
                             .opacity(items.count > 0 ? 1 : 0)
@@ -202,6 +348,7 @@ struct MediaLibraryView: View {
             }
         }
         .task { await load() }
+        .onAppear { Task { await refreshStatus() } }
         .sheet(item: $selected) { item in
             MediaItemDetailSheet(item: item) {
                 items.removeAll { $0.id == item.id }
@@ -227,6 +374,13 @@ struct MediaLibraryView: View {
             } else {
                 errorMessage = error.localizedDescription
             }
+        }
+        await refreshStatus()
+    }
+
+    private func refreshStatus() async {
+        if let s = try? await API.playbackStatus() {
+            playbackByPath = Dictionary(uniqueKeysWithValues: s.items.map { ($0.path, $0) })
         }
     }
 
@@ -369,7 +523,9 @@ struct MediaItemDetailSheet: View {
             Text("This removes the files from the drive. It can't be undone.")
         }
         .fullScreenCover(item: $playerPresentation) { p in
-            PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title)
+            PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title,
+                       path: p.path, kind: p.kind, image: p.image,
+                       seriesId: p.seriesId, season: p.season, episode: p.episode)
         }
     }
 
@@ -392,33 +548,30 @@ struct MediaItemDetailSheet: View {
         }
     }
 
-    private func makeStreamURL() -> URL? {
-        AppLog.error("makeStreamURL: activeBase=\(API.activeBase) path=\(item.path ?? "nil")")
+    private func makeStreamURL(download: Bool = false) -> URL? {
         var comps = URLComponents(string: API.activeBase + "/api/media/stream")
-        comps?.queryItems = [URLQueryItem(name: "path", value: item.path)]
-        let url = comps?.url
-        AppLog.error("makeStreamURL: url=\(url?.absoluteString ?? "nil")")
-        return url
+        var q = [URLQueryItem(name: "path", value: item.path)]
+        if download { q.append(URLQueryItem(name: "download", value: "1")) }
+        comps?.queryItems = q
+        return comps?.url
     }
 
     private func play() {
-        AppLog.error("play() called for \(item.name)")
-        guard let url = makeStreamURL() else {
-            AppLog.error("play: makeStreamURL returned nil")
-            return
-        }
+        guard let url = makeStreamURL() else { return }
         var sub = URLComponents(string: API.activeBase + "/api/media/subtitles")
         sub?.queryItems = [URLQueryItem(name: "path", value: item.path)]
         Haptics.impact(.medium)
-        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url, title: item.name)
+        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url, title: item.name,
+                                                path: item.path, kind: "movie", image: item.image)
     }
 
     private func download() async {
         downloading = true
         downloadStatus = "Downloading…"
         defer { downloading = false }
-        guard let url = makeStreamURL() else { return }
-        let filename = (item.path as NSString?)?.lastPathComponent ?? "\(item.name).mp4"
+        guard let url = makeStreamURL(download: true) else { return }
+        let base = (item.path as NSString?)?.lastPathComponent ?? "\(item.name).mp4"
+        let filename = (base as NSString).deletingPathExtension + ".mp4"
         do {
             try await DownloadManager.shared.download(name: item.name, filename: filename, remoteURL: url)
             Haptics.success()
@@ -757,6 +910,7 @@ struct SeriesEpisodesView: View {
     @State private var loading = true
     @State private var errorMessage: String?
     @State private var playerPresentation: PlayerPresentation?
+    @State private var playbackByPath: [String: PlaybackRecord] = [:]
 
     var body: some View {
         NavigationStack {
@@ -776,6 +930,7 @@ struct SeriesEpisodesView: View {
                         ForEach(seasons, id: \.self) { season in
                             Section("Season \(season)") {
                                 ForEach(episodes.filter { $0.season == season }) { ep in
+                                    let watched = playbackByPath[ep.path ?? ""]?.watched ?? false
                                     Button { play(ep) } label: {
                                         HStack(spacing: 12) {
                                             Text("E\(ep.episode ?? 0)")
@@ -784,12 +939,24 @@ struct SeriesEpisodesView: View {
                                                 .frame(width: 34, alignment: .leading)
                                             Text(ep.name).lineLimit(2)
                                             Spacer()
-                                            Image(systemName: "play.circle.fill")
-                                                .font(.title3)
-                                                .foregroundStyle(Palette.accent)
+                                            if watched {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundStyle(.green)
+                                            } else {
+                                                Image(systemName: "play.circle.fill")
+                                                    .font(.title3)
+                                                    .foregroundStyle(Palette.accent)
+                                            }
                                         }
                                     }
                                     .foregroundStyle(.primary)
+                                    .contextMenu {
+                                        Button { Task { await setWatched(ep, watched: !watched) } } label: {
+                                            Label(watched ? "Märgi vaatamata" : "Märgi vaadatuks",
+                                                  systemImage: watched ? "circle" : "checkmark.circle")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -800,12 +967,20 @@ struct SeriesEpisodesView: View {
             .navigationTitle(series.name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { Task { await markAllWatched() } } label: {
+                        Image(systemName: "checkmark.rectangle")
+                    }
+                    Button("Done") { dismiss() }
+                }
             }
         }
         .task { await load() }
+        .onAppear { Task { await refreshStatus() } }
         .fullScreenCover(item: $playerPresentation) { p in
-            PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title)
+            PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title,
+                       path: p.path, kind: p.kind, image: p.image,
+                       seriesId: p.seriesId, season: p.season, episode: p.episode)
         }
     }
 
@@ -822,6 +997,27 @@ struct SeriesEpisodesView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+        await refreshStatus()
+    }
+
+    private func refreshStatus() async {
+        if let s = try? await API.playbackStatus() {
+            playbackByPath = Dictionary(uniqueKeysWithValues: s.items.map { ($0.path, $0) })
+        }
+    }
+
+    private func setWatched(_ ep: JellyfinEpisode, watched: Bool) async {
+        guard let path = ep.path else { return }
+        try? await API.playbackMarkWatched(path, watched: watched)
+        await refreshStatus()
+    }
+
+    private func markAllWatched() async {
+        Haptics.impact()
+        for ep in episodes {
+            if let path = ep.path { try? await API.playbackMarkWatched(path, watched: true) }
+        }
+        await refreshStatus()
     }
 
     private func play(_ ep: JellyfinEpisode) {
@@ -833,6 +1029,8 @@ struct SeriesEpisodesView: View {
         sub?.queryItems = [URLQueryItem(name: "path", value: path)]
         Haptics.impact(.medium)
         let label = "\(series.name) S\(ep.season ?? 0)E\(ep.episode ?? 0) · \(ep.name)"
-        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url, title: label)
+        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url, title: label,
+                                                path: path, kind: "episode", image: series.image,
+                                                seriesId: series.id, season: ep.season, episode: ep.episode)
     }
 }

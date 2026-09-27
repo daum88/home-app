@@ -13,8 +13,10 @@ import logging
 import mimetypes
 import os
 import re
+import shutil
 import subprocess
 import time
+import uuid
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import Any
@@ -134,6 +136,7 @@ async def lifespan(_: FastAPI):
     warmup = asyncio.create_task(_warm_up())
     letterboxd_task = asyncio.create_task(_letterboxd_watcher())
     jellyfin_task = asyncio.create_task(_jellyfin_refresh_watcher())
+    hls_task = asyncio.create_task(_hls_cleanup())
     log.info("Home Voice Assistant started (LLM=%s/%s)", config.LLM_PROVIDER, config.LLM_MODEL)
     try:
         yield
@@ -142,11 +145,13 @@ async def lifespan(_: FastAPI):
         warmup.cancel()
         letterboxd_task.cancel()
         jellyfin_task.cancel()
+        hls_task.cancel()
         with suppress(asyncio.CancelledError):
             await watcher
             await warmup
             await letterboxd_task
             await jellyfin_task
+            await hls_task
 
 
 app = FastAPI(title="Home Voice Assistant", lifespan=lifespan)
@@ -317,6 +322,66 @@ async def media_subtitles(path: str = "") -> Response:
     return Response(content=_srt_to_vtt(srt), media_type="text/vtt", headers={"Cache-Control": "no-cache"})
 
 
+class PlaybackRequest(BaseModel):
+    path: str
+    position: float = 0.0
+    duration: float = 0.0
+    title: str = ""
+    kind: str = ""
+    image: str = ""
+    series_id: str = ""
+    season: int | None = None
+    episode: int | None = None
+
+
+class WatchedRequest(BaseModel):
+    path: str
+    watched: bool
+
+
+@app.get("/api/playback")
+async def playback_get(path: str = "") -> dict[str, Any]:
+    if not path:
+        raise HTTPException(status_code=400, detail="missing path")
+    rec = await asyncio.to_thread(db.playback_get, path)
+    if rec is None:
+        return {"path": path, "position": 0.0, "duration": 0.0, "watched": False}
+    rec["watched"] = bool(rec.get("watched"))
+    return rec
+
+
+@app.post("/api/playback")
+async def playback_save(req: PlaybackRequest) -> dict[str, Any]:
+    await asyncio.to_thread(
+        db.playback_upsert, path=req.path, position=req.position, duration=req.duration,
+        title=req.title, kind=req.kind, image=req.image, series_id=req.series_id,
+        season=req.season, episode=req.episode,
+    )
+    return {"ok": True}
+
+
+@app.post("/api/playback/watched")
+async def playback_watched(req: WatchedRequest) -> dict[str, Any]:
+    await asyncio.to_thread(db.playback_mark, req.path, req.watched)
+    return {"ok": True}
+
+
+@app.get("/api/playback/continue")
+async def playback_continue() -> dict[str, Any]:
+    items = await asyncio.to_thread(db.playback_continue, 20)
+    for it in items:
+        it["watched"] = bool(it.get("watched"))
+    return {"items": items}
+
+
+@app.get("/api/playback/status")
+async def playback_status() -> dict[str, Any]:
+    items = await asyncio.to_thread(db.playback_all)
+    for it in items:
+        it["watched"] = bool(it.get("watched"))
+    return {"items": items}
+
+
 _UNSUPPORTED_AUDIO = {"dts", "dca", "truehd", "mlp", "vorbis", "flac", "pcm_s16le", "pcm_s24le"}
 _audio_codec_cache: dict[str, tuple[float, str]] = {}
 
@@ -341,7 +406,7 @@ def _audio_codec(path: str) -> str:
 
 
 def _transcode_generator(path: str):
-    """Stream the file with audio transcoded to AAC (video copied)."""
+    """Stream the file with audio transcoded to AAC (video copied) — used for offline downloads."""
     cmd = [
         "/usr/lib/jellyfin-ffmpeg/ffmpeg", "-hide_banner", "-loglevel", "error",
         "-i", path,
@@ -365,8 +430,102 @@ def _transcode_generator(path: str):
         proc.terminate()
 
 
+_HLS_DIR = "/mnt/ketas/.hls"
+_hls_sessions: dict[str, dict[str, Any]] = {}
+
+
+def _hls_start(path: str) -> dict[str, Any]:
+    """Start (or reuse) an ffmpeg HLS remux for a file. Returns its session."""
+    now = time.time()
+    if path in _hls_sessions:
+        _hls_sessions[path]["last"] = now
+        return _hls_sessions[path]
+    # keep at most 4 concurrent sessions so the drive/RAM never fills up
+    while len(_hls_sessions) >= 4:
+        oldest = min(_hls_sessions.values(), key=lambda s: s["last"])
+        if oldest.get("proc") and oldest["proc"].poll() is None:
+            oldest["proc"].terminate()
+        with suppress(OSError):
+            shutil.rmtree(oldest["dir"], ignore_errors=True)
+        _hls_sessions.pop(oldest["path"], None)
+    token = uuid.uuid4().hex
+    d = os.path.join(_HLS_DIR, token)
+    os.makedirs(d, exist_ok=True)
+    cmd = [
+        "/usr/lib/jellyfin-ffmpeg/ffmpeg", "-hide_banner", "-loglevel", "error",
+        "-i", path,
+        "-map", "0:v:0", "-c:v", "copy",
+        "-map", "0:a:0", "-c:a", "aac", "-b:a", "192k",
+        "-hls_time", "6", "-hls_list_size", "0",
+        "-hls_segment_filename", os.path.join(d, "seg%05d.ts"),
+        "-f", "hls", os.path.join(d, "index.m3u8"),
+    ]
+    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    sess = {"path": path, "token": token, "dir": d, "proc": proc, "last": now}
+    _hls_sessions[path] = sess
+    return sess
+
+
+async def _hls_playlist(request: Request, path: str) -> Response:
+    """Serve the growing HLS playlist with segment URLs rewritten to absolute."""
+    sess = _hls_start(path)
+    playlist = os.path.join(sess["dir"], "index.m3u8")
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        if os.path.isfile(playlist) and os.path.getsize(playlist) > 0:
+            break
+        await asyncio.sleep(0.3)
+    try:
+        with open(playlist, encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+    except OSError as err:
+        raise HTTPException(status_code=503, detail="transcoder starting") from err
+    sess["last"] = time.time()
+    seg_base = f"{str(request.base_url).rstrip('/')}/api/media/hls/{sess['token']}/"
+    lines = []
+    for line in text.splitlines():
+        if line and not line.startswith("#") and line.endswith(".ts"):
+            lines.append(seg_base + line)
+        else:
+            lines.append(line)
+    return Response(content="\n".join(lines) + "\n",
+                    media_type="application/vnd.apple.mpegurl",
+                    headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/media/hls/{token}/{filename}")
+async def media_hls_segment(token: str, filename: str) -> Response:
+    sess = next((s for s in _hls_sessions.values() if s["token"] == token), None)
+    if sess is None:
+        raise HTTPException(status_code=404, detail="unknown session")
+    sess["last"] = time.time()
+    safe = os.path.basename(filename)
+    fp = os.path.join(sess["dir"], safe)
+    if not os.path.isfile(fp):
+        raise HTTPException(status_code=404, detail="segment missing")
+    media_type = "application/vnd.apple.mpegurl" if safe.endswith(".m3u8") else "video/mp2t"
+    return FileResponse(fp, media_type=media_type, headers={"Cache-Control": "no-store"})
+
+
+async def _hls_cleanup() -> None:
+    """Reap idle HLS sessions so segments don't pile up on the drive."""
+    while True:
+        await asyncio.sleep(60)
+        now = time.time()
+        for path, sess in list(_hls_sessions.items()):
+            proc = sess.get("proc")
+            done = proc is not None and proc.poll() is not None
+            idle = now - sess.get("last", 0)
+            if (done and idle > 300) or idle > 1800:
+                if proc is not None and proc.poll() is None:
+                    proc.terminate()
+                with suppress(OSError):
+                    shutil.rmtree(sess["dir"], ignore_errors=True)
+                _hls_sessions.pop(path, None)
+
+
 @app.get("/api/media/stream")
-async def media_stream(request: Request, path: str = "") -> Response:
+async def media_stream(request: Request, path: str = "", download: int = 0) -> Response:
     """Stream a movie file straight from the Pi's disk (Range support for seeking)."""
     if not path:
         raise HTTPException(status_code=400, detail="missing path")
@@ -374,13 +533,19 @@ async def media_stream(request: Request, path: str = "") -> Response:
     if not os.path.isfile(local):
         raise HTTPException(status_code=404, detail="file not found on disk")
 
-    # iPhones can't decode DTS/TrueHD etc. — remux with AAC audio instead.
-    if _audio_codec(local) in _UNSUPPORTED_AUDIO:
+    # Offline save: a complete MP4 (video copied, audio → AAC) so the iPhone
+    # can always play it, whatever the source container/audio codec is.
+    if download:
         return StreamingResponse(
             _transcode_generator(local),
             media_type="video/mp4",
-            headers={"Content-Disposition": "inline", "Cache-Control": "no-store"},
+            headers={"Content-Disposition": f'inline; filename="{os.path.splitext(os.path.basename(local))[0]}.mp4"',
+                     "Cache-Control": "no-store"},
         )
+
+    # iPhones can't decode DTS/TrueHD etc. — remux to HLS (AAC audio, seekable).
+    if _audio_codec(local) in _UNSUPPORTED_AUDIO:
+        return await _hls_playlist(request, local)
     size = os.path.getsize(local)
     filename = os.path.basename(local)
     content_type = mimetypes.guess_type(local)[0] or "application/octet-stream"

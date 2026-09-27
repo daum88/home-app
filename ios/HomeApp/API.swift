@@ -285,6 +285,25 @@ struct SpendingReceipt: Decodable, Identifiable {
 }
 struct SpendingStats: Decodable { var monthly: [SpendingMonth]; var stores: [SpendingStore]?; var recent: [SpendingReceipt]? }
 
+// ── Playback progress / resume / watched ────────────────────────────────────
+struct PlaybackRecord: Decodable, Identifiable {
+    var path: String
+    var title: String?
+    var kind: String?
+    var image: String?
+    var seriesId: String?
+    var season: Int?
+    var episode: Int?
+    var position: Double
+    var duration: Double
+    var watched: Bool
+    var updatedOn: String?
+    var id: String { path }
+}
+struct PlaybackStatus: Decodable { var items: [PlaybackRecord] }
+struct PlaybackContinue: Decodable { var items: [PlaybackRecord] }
+struct OKResult: Decodable { var ok: Bool }
+
 // ── API client ───────────────────────────────────────────────────────────────
 enum API {
     /// Candidate server addresses, tried in order.
@@ -363,6 +382,45 @@ enum API {
         let body = try JSONSerialization.data(withJSONObject: json)
         return try await send(path, method: "POST", body: body, contentType: "application/json", timeout: timeout)
     }
+
+    /// GET a JSON endpoint (relative path, optional query items).
+    static func get<T: Decodable>(_ path: String, query: [URLQueryItem] = [], timeout: TimeInterval = 6) async throws -> T {
+        var comps = URLComponents()
+        comps.path = path
+        if !query.isEmpty { comps.queryItems = query }
+        return try await send(comps.string ?? path, method: "GET", timeout: timeout)
+    }
+
+    // ── Playback progress helpers ──────────────────────────────────────────
+
+    static func playbackGet(_ path: String) async throws -> PlaybackRecord {
+        try await get("/api/playback", query: [URLQueryItem(name: "path", value: path)])
+    }
+
+    static func playbackContinue() async throws -> PlaybackContinue {
+        try await get("/api/playback/continue")
+    }
+
+    static func playbackStatus() async throws -> PlaybackStatus {
+        try await get("/api/playback/status")
+    }
+
+    static func playbackSave(path: String, position: Double, duration: Double,
+                             title: String, kind: String, image: String?,
+                             seriesId: String? = nil, season: Int? = nil, episode: Int? = nil) async throws {
+        var body: [String: Any] = ["path": path, "position": position, "duration": duration,
+                                   "title": title, "kind": kind]
+        if let image { body["image"] = image }
+        if let seriesId { body["series_id"] = seriesId }
+        if let season { body["season"] = season }
+        if let episode { body["episode"] = episode }
+        let _: OKResult = try await post("/api/playback", json: body, timeout: 8)
+    }
+
+    static func playbackMarkWatched(_ path: String, watched: Bool) async throws {
+        let _: OKResult = try await post("/api/playback/watched", json: ["path": path, "watched": watched], timeout: 8)
+    }
+
 
     static func tool<T: Decodable>(_ name: String, args: [String: Any] = [:]) async throws -> T {
         try await post("/api/tools/\(name)", json: ["args": args])

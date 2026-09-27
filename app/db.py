@@ -94,6 +94,20 @@ def init_db() -> None:
 
                 CREATE UNIQUE INDEX IF NOT EXISTS idx_price_unique
                     ON price_history(barcode, name, bought_on);
+
+                CREATE TABLE IF NOT EXISTS playback (
+                    path       TEXT PRIMARY KEY,
+                    title      TEXT,
+                    kind       TEXT,
+                    image      TEXT,
+                    series_id  TEXT,
+                    season     INTEGER,
+                    episode    INTEGER,
+                    position   REAL NOT NULL DEFAULT 0,
+                    duration   REAL NOT NULL DEFAULT 0,
+                    watched    INTEGER NOT NULL DEFAULT 0,
+                    updated_on TEXT DEFAULT (datetime('now'))
+                );
                 """
             )
             # Migrate existing DBs that predate the spending columns.
@@ -463,5 +477,99 @@ def history_recent(limit: int = 20) -> list[dict[str, str]]:
                 "SELECT role, content FROM history ORDER BY id DESC LIMIT ?", (limit,)
             ).fetchall()
             return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
+        finally:
+            conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Playback progress + watched state (resume / continue watching)
+# ---------------------------------------------------------------------------
+
+def playback_get(path: str) -> dict[str, Any] | None:
+    with _lock:
+        conn = _connect()
+        try:
+            row = conn.execute("SELECT * FROM playback WHERE path = ?", (path,)).fetchone()
+            return dict(row) if row else None
+        finally:
+            conn.close()
+
+
+def playback_upsert(
+    *, path: str, position: float = 0.0, duration: float = 0.0, title: str = "",
+    kind: str = "", image: str = "", series_id: str = "", season: int | None = None,
+    episode: int | None = None,
+) -> None:
+    """Save playback position; auto-marks watched once past ~90% of duration."""
+    with _lock:
+        conn = _connect()
+        try:
+            row = conn.execute("SELECT watched FROM playback WHERE path = ?", (path,)).fetchone()
+            watched = 1 if (row and row["watched"]) else 0
+            if duration > 0 and position / duration >= 0.9:
+                watched = 1
+            conn.execute(
+                """
+                INSERT INTO playback
+                    (path, title, kind, image, series_id, season, episode, position, duration, watched, updated_on)
+                VALUES (?,?,?,?,?,?,?,?,?,?,datetime('now'))
+                ON CONFLICT(path) DO UPDATE SET
+                    title=excluded.title, kind=excluded.kind, image=excluded.image,
+                    series_id=excluded.series_id, season=excluded.season, episode=excluded.episode,
+                    position=excluded.position, duration=excluded.duration, watched=excluded.watched,
+                    updated_on=datetime('now')
+                """,
+                (path, title or "", kind or "", image or "", series_id or "", season, episode,
+                 position, duration, watched),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def playback_mark(path: str, watched: bool) -> None:
+    """Explicitly mark/unmark an item as watched (keeps any stored metadata)."""
+    with _lock:
+        conn = _connect()
+        try:
+            conn.execute(
+                """
+                INSERT INTO playback (path, position, duration, watched, updated_on)
+                VALUES (?,0,0,?,datetime('now'))
+                ON CONFLICT(path) DO UPDATE SET watched=excluded.watched, updated_on=datetime('now')
+                """,
+                (path, 1 if watched else 0),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def playback_continue(limit: int = 20) -> list[dict[str, Any]]:
+    """In-progress items (not watched, meaningfully past the start, not near the end)."""
+    with _lock:
+        conn = _connect()
+        try:
+            rows = conn.execute(
+                """
+                SELECT * FROM playback
+                WHERE watched = 0 AND duration > 0 AND position > 60 AND (duration - position) > 60
+                ORDER BY updated_on DESC LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+
+def playback_all() -> list[dict[str, Any]]:
+    with _lock:
+        conn = _connect()
+        try:
+            rows = conn.execute(
+                "SELECT path, watched, position, duration FROM playback"
+            ).fetchall()
+            return [dict(r) for r in rows]
         finally:
             conn.close()
