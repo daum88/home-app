@@ -328,6 +328,8 @@ struct MediaItemDetailSheet: View {
     @State private var playerPresentation: PlayerPresentation?
     @State private var downloading = false
     @State private var downloadStatus: String?
+    @State private var downloadFilename = ""
+    @ObservedObject private var downloads = DownloadManager.shared
 
     var body: some View {
         ScrollView {
@@ -378,6 +380,17 @@ struct MediaItemDetailSheet: View {
                         }
                         .buttonStyle(.bordered)
                         .disabled(downloading)
+                    }
+
+                    // Download progress
+                    if downloading, let p = downloads.progress[downloadFilename] {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ProgressView(value: p)
+                                .progressViewStyle(.linear)
+                                .tint(Theme.teal)
+                            Text("Downloading… \(Int(p * 100))%")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
 
                     // Delete
@@ -490,6 +503,7 @@ struct MediaItemDetailSheet: View {
         }
         let base = (path as NSString).lastPathComponent
         let filename = (base as NSString).deletingPathExtension + ".mp4"
+        downloadFilename = filename
         do {
             try await DownloadManager.shared.download(name: item.name, filename: filename, remoteURL: url)
             Haptics.success()

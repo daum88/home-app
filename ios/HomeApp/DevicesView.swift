@@ -68,10 +68,34 @@ struct DevicesView: View {
                     ProgressView()
                 }
             }
-            .sheet(isPresented: $showFridge) { if let fridge = state.fridge { FridgeSheet(fridge: fridge) } }
+            .sheet(isPresented: $showFridge) {
+                if let fridge = state.fridge {
+                    FridgeSheet(fridge: fridge)
+                } else {
+                    NavigationStack {
+                        ContentUnavailableView("Fridge unavailable", systemImage: "refrigerator",
+                                               description: Text("Still connecting to the fridge. Pull to refresh and try again."))
+                            .navigationTitle("Fridge")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showFridge = false } } }
+                    }
+                }
+            }
             .sheet(isPresented: $showMedia) { MediaView() }
             .sheet(isPresented: $showSettings) { SettingsView() }
-            .sheet(isPresented: $showVentSheet) { if let vent = state.vent { VentSheet(vent: vent, onChanged: { state.vent = $0 }) } }
+            .sheet(isPresented: $showVentSheet) {
+                if let vent = state.vent {
+                    VentSheet(vent: vent, onChanged: { state.vent = $0 })
+                } else {
+                    NavigationStack {
+                        ContentUnavailableView("Ventilation unavailable", systemImage: "fanblades",
+                                               description: Text("Still connecting to the ventilation unit."))
+                            .navigationTitle("Ventilation")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { showVentSheet = false } } }
+                    }
+                }
+            }
         }
     }
 

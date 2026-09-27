@@ -37,6 +37,22 @@ def srt_to_vtt(srt: str) -> str:
     return "\n".join(out)
 
 
+def _read_srt(path: str) -> str:
+    """Read a .srt, trying UTF-8 first, then common Windows/Baltic encodings
+    so Estonian special characters (õ ä ö ü š ž) survive."""
+    data = Path(path).read_bytes()
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        pass
+    for enc in ("cp1252", "cp1257", "latin-1"):
+        try:
+            return data.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return data.decode("utf-8", errors="replace")
+
+
 def resolve_media_path(path: str) -> str:
     try:
         return jellyfin_tool.local_path(path)
@@ -69,7 +85,7 @@ async def media_subtitles(path: str = "") -> Response:
     # prefer Estonian subtitles
     srt_files.sort(key=lambda f: 0 if ("est" in f.lower() or "eesti" in f.lower()) else 1)
     try:
-        srt = await asyncio.to_thread(Path(srt_files[0]).read_text, encoding="utf-8", errors="replace")
+        srt = await asyncio.to_thread(_read_srt, srt_files[0])
     except OSError as err:
         raise HTTPException(status_code=404, detail="subtitle unreadable") from err
     return Response(content=srt_to_vtt(srt), media_type="text/vtt", headers={"Cache-Control": "no-cache"})

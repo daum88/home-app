@@ -433,13 +433,13 @@ enum API {
     }
 
 
-    static func tool<T: Decodable>(_ name: String, args: [String: Any] = [:]) async throws -> T {
-        try await post("/api/tools/\(name)", json: ["args": args])
+    static func tool<T: Decodable>(_ name: String, args: [String: Any] = [:], timeout: TimeInterval = 6) async throws -> T {
+        try await post("/api/tools/\(name)", json: ["args": args], timeout: timeout)
     }
 
     /// Run a tool and unwrap the envelope, throwing on `ok: false`.
-    static func run<T: Decodable>(_ name: String, args: [String: Any] = [:]) async throws -> T {
-        let env: ToolEnvelope<T> = try await tool(name, args: args)
+    static func run<T: Decodable>(_ name: String, args: [String: Any] = [:], timeout: TimeInterval = 6) async throws -> T {
+        let env: ToolEnvelope<T> = try await tool(name, args: args, timeout: timeout)
         if !env.ok { throw APIError.server(env.error ?? "\(name) failed") }
         guard let data = env.data else { throw APIError.server("\(name): no data") }
         return data

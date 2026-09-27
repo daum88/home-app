@@ -36,25 +36,25 @@ final class DeviceState: ObservableObject {
     }
 
     func loadWeather() async {
-        if let w: WeatherNow = try? await API.run("weather_now") { weather = w }
+        if let w: WeatherNow = try? await API.run("weather_now", timeout: 30) { weather = w }
     }
     func loadElectricity() async {
-        if let e: ElectricityPrice = try? await API.run("electricity_price") { electricity = e }
+        if let e: ElectricityPrice = try? await API.run("electricity_price", timeout: 30) { electricity = e }
     }
     func loadWasher() async {
-        if let w: WasherStatus = try? await API.run("washer_status") {
+        if let w: WasherStatus = try? await API.run("washer_status", timeout: 30) {
             washer = w
             WasherLiveActivityManager.shared.sync(machineState: w.machineState, progress: w.progress, remainingMinutes: w.remainingMinutes)
         }
     }
     func loadFridge() async {
-        if let f: FridgeStatus = try? await API.run("fridge_status") { fridge = f }
+        if let f: FridgeStatus = try? await API.run("fridge_status", timeout: 30) { fridge = f }
     }
     func loadVent() async {
-        if let v: VentStatus = try? await API.run("ventilation_status") { vent = v }
+        if let v: VentStatus = try? await API.run("ventilation_status", timeout: 30) { vent = v }
     }
     func loadTorrents() async {
-        if let list: TorrentList = try? await API.run("list_torrents") { torrents = list.torrents }
+        if let list: TorrentList = try? await API.run("list_torrents", timeout: 30) { torrents = list.torrents }
     }
 
     func run(_ tool: String) async {

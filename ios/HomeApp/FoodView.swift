@@ -11,6 +11,7 @@ struct FoodView: View {
     @State private var showRecipes = false
     @State private var showSpending = false
     @State private var showScanner = false
+    @State private var showSuggestion: RecipeSuggestion?
 
     var body: some View {
         NavigationStack {
@@ -48,6 +49,11 @@ struct FoodView: View {
         .sheet(isPresented: $showRecipes) { RecipesView() }
         .sheet(isPresented: $showSpending) { SpendingView() }
         .sheet(isPresented: $showScanner) { BarcodeScanSheet { await load() } }
+        .sheet(item: $showSuggestion) { rec in
+            RecipeDetailSheet(name: rec.name, ingredients: rec.ingredients ?? [],
+                              instructions: rec.instructions ?? "", thumb: rec.thumb,
+                              category: rec.category, area: rec.area)
+        }
     }
 
     // ── Header ──────────────────────────────────────────────────────────────
@@ -158,12 +164,19 @@ struct FoodView: View {
             Text("Recipe ideas").font(.headline).foregroundStyle(Theme.ink)
             ForEach(suggested.prefix(3)) { rec in
                 HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(rec.name).font(.subheadline.weight(.medium)).lineLimit(1)
-                        Text([rec.category, rec.area].compactMap { $0 }.joined(separator: " · "))
-                            .font(.caption).foregroundStyle(.secondary)
+                    Button {
+                        Haptics.impact()
+                        showSuggestion = rec
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rec.name).font(.subheadline.weight(.medium)).lineLimit(1)
+                            Text([rec.category, rec.area].compactMap { $0 }.joined(separator: " · "))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
-                    Spacer()
+                    .buttonStyle(.plain)
                     Button("Save") {
                         Task {
                             _ = try? await API.run("save_recipe", args: ["meal_id": rec.id]) as AddResult

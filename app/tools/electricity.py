@@ -23,6 +23,14 @@ def _hour_ts(ts: int) -> int:
     return ts // 3600 * 3600
 
 
+def _window(start: datetime, end: datetime) -> dict[str, str]:
+    """Elering query window (UTC ISO strings)."""
+    return {
+        "start": start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "end": end.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+
 def _hourly(rows: list[dict]) -> list[dict]:
     """Aggregate Elering's 15-min blocks into hourly averages (cents/kWh)."""
     buckets: dict[int, list[float]] = defaultdict(list)
@@ -51,16 +59,14 @@ async def electricity_price() -> dict[str, Any]:
     now = datetime.now(TZ)
     try:
         async with httpx.AsyncClient(timeout=12) as client:
-            # Today's actual prices (00:00 → now).
-            today_rows = _hourly(await _get(client))
-            # Tomorrow's day-ahead prices.
-            tomorrow_start = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-            day_after = tomorrow_start + timedelta(days=1)
-            params = {
-                "start": tomorrow_start.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "end": day_after.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            }
-            tomorrow_rows = _hourly(await _get(client, params))
+            # Today's full day (past actuals + future day-ahead). The bare API
+            # returns only past actuals, so ask for an explicit midnight→midnight
+            # window to get all 24 hours.
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            today_end = today_start + timedelta(days=1)
+            today_rows = _hourly(await _get(client, _window(today_start, today_end)))
+            # Tomorrow's day-ahead (published in the early afternoon, may be partial).
+            tomorrow_rows = _hourly(await _get(client, _window(today_end, today_end + timedelta(days=1))))
     except httpx.HTTPError as err:
         raise ToolError(f"can't reach Elering ({err})") from err
 
