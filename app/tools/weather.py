@@ -81,13 +81,20 @@ async def weather_forecast(days: int = 3) -> dict[str, Any]:
         "timezone": "auto",
     })
     daily = data.get("daily") or {}
-    out = []
-    for i in range(days):
-        out.append({
-            "date": (daily.get("time") or [None])[i],
-            "max": (daily.get("temperature_2m_max") or [None])[i],
-            "min": (daily.get("temperature_2m_min") or [None])[i],
-            "condition": _desc((daily.get("weather_code") or [None])[i]),
-            "precip_prob": (daily.get("precipitation_probability_max") or [None])[i],
-        })
-    return {"days": out}
+
+    def at(key: str, index: int) -> Any:
+        values = daily.get(key) or []
+        return values[index] if index < len(values) else None
+
+    return {
+        "days": [
+            {
+                "date": date,
+                "max": at("temperature_2m_max", i),
+                "min": at("temperature_2m_min", i),
+                "condition": _desc(at("weather_code", i)),
+                "precip_prob": at("precipitation_probability_max", i),
+            }
+            for i, date in enumerate((daily.get("time") or [])[:days])
+        ]
+    }

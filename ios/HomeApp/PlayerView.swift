@@ -36,8 +36,7 @@ struct PlayerView: View {
     @State private var observers: [NSKeyValueObservation] = []
     @State private var subtitleText: String?
     @State private var subtitleTimer: Timer?
-    @State private var resumePosition: Double = 0
-    @State private var didResume = false
+    @State private var resumeDecision = ResumeDecision()
     @State private var saveTimer: Timer?
 
     var body: some View {
@@ -72,9 +71,13 @@ struct PlayerView: View {
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.8))
                         .multilineTextAlignment(.center)
-                    Button("Close") { dismiss() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.white.opacity(0.2))
+                    HStack(spacing: 12) {
+                        Button("Retry") { retry() }
+                            .buttonStyle(.borderedProminent)
+                        Button("Close") { dismiss() }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.white.opacity(0.2))
+                    }
                 }
                 .padding(28)
             } else if isLoading {
@@ -106,6 +109,20 @@ struct PlayerView: View {
         }
     }
 
+    private func retry() {
+        player?.pause()
+        subtitleTimer?.invalidate()
+        saveTimer?.invalidate()
+        observers.forEach { $0.invalidate() }
+        observers.removeAll()
+        player = nil
+        subtitleText = nil
+        resumeDecision = ResumeDecision()
+        errorMessage = nil
+        isLoading = true
+        setup()
+    }
+
     private func setup() {
         guard player == nil else { return }
         // Ensure audio plays even when the phone's mute switch is on.
@@ -120,8 +137,8 @@ struct PlayerView: View {
         if let path {
             startSaveTimer()
             Task {
-                if let rec = try? await API.playbackGet(path), rec.position > 5 {
-                    await MainActor.run { resumePosition = rec.position }
+                if let rec = try? await API.playbackGet(path) {
+                    await MainActor.run { resumeIfReady(position: rec.position) }
                 }
             }
         }
@@ -154,20 +171,27 @@ struct PlayerView: View {
                         AppLog.error("Player failed: \(errorMessage ?? "unknown")")
                         isLoading = false
                     case .readyToPlay:
-                        if !didResume, resumePosition > 5 {
-                            let d = item.duration.seconds
-                            if d.isFinite, d > 0, resumePosition < d - 10 {
-                                p.seek(to: CMTime(seconds: resumePosition, preferredTimescale: 600),
-                                       toleranceBefore: .zero, toleranceAfter: .zero)
-                            }
-                            didResume = true
-                        }
+                        resumeIfReady(duration: item.duration.seconds)
                     default:
                         isLoading = true
                     }
                 }
             }
             observers.append(itemObs)
+            let durationObs = item.observe(\.duration, options: [.initial, .new]) { item, _ in
+                DispatchQueue.main.async { resumeIfReady(duration: item.duration.seconds) }
+            }
+            observers.append(durationObs)
+        }
+    }
+
+    private func resumeIfReady(position: Double? = nil, duration: Double? = nil) {
+        var target: Double?
+        if let position { target = resumeDecision.receivePosition(position) }
+        if let duration { target = resumeDecision.receiveDuration(duration) }
+        if let target {
+            player?.seek(to: CMTime(seconds: target, preferredTimescale: 600),
+                         toleranceBefore: .zero, toleranceAfter: .zero)
         }
     }
 

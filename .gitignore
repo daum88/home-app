@@ -15,5 +15,8 @@ venv/
 *.egg-info/
 .pytest_cache/
 
+# Web tests
+node_modules/
+
 # OS
 .DS_Store

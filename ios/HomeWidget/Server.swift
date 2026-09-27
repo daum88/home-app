@@ -14,30 +14,13 @@ enum Server {
         let error: String?
     }
 
-    struct FridgeItem: Decodable, Identifiable {
-        var id: Int
-        var name: String
-        var quantity: Double?
-        var unit: String?
-        var expiresOn: String?
-        var position: String?
-    }
-    struct FridgeInventory: Decodable { var items: [FridgeItem] }
-
     struct ExpiringItem: Decodable, Identifiable {
-        var id: String { name + (expiresOn ?? "") }
+        var id: Int
         var name: String
         var expiresOn: String?
         var daysLeft: Int?
     }
     struct ExpiringList: Decodable { var items: [ExpiringItem] }
-
-    struct Washer: Decodable {
-        var machineState: String?
-        var progress: Double?
-        var remainingMinutes: Int?
-        var currentCycle: String?
-    }
 
     struct WeatherNow: Decodable {
         var temperature: Double?
@@ -89,10 +72,6 @@ enum Server {
 
     static func expiringItems() async -> [ExpiringItem] {
         ((try? await run("inventory_expiring", args: ["days": 7])) as ExpiringList?)?.items ?? []
-    }
-
-    static func washer() async -> Washer? {
-        try? await run("washer_status") as Washer
     }
 
     static func weather() async -> WeatherNow? {

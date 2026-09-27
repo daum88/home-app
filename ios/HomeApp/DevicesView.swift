@@ -352,7 +352,7 @@ struct DevicesView: View {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
             let content = UNMutableNotificationContent()
-            content.title = "Odav elekter 🧺"
+            content.title = "Cheap electricity 🧺"
             content.body = "Cheapest electricity at \(ch.hour) (\(String(format: "%.1f", ch.price))¢/kWh). Start the washer?"
             content.sound = .default
             let comps = cal.dateComponents([.year, .month, .day, .hour, .minute], from: fire)

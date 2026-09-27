@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 
 import httpx
 
-from .. import config
 from .base import ToolError
 
 ELERING_URL = "https://dashboard.elering.ee/api/nps/price"

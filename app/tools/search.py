@@ -6,16 +6,7 @@ from typing import Any
 import httpx
 
 from .. import config
-from .base import ToolError
-
-
-def _fmt_size(num: int | float) -> str:
-    num = float(num or 0)
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if num < 1024 or unit == "TB":
-            return f"{num:.0f} {unit}" if unit == "B" else f"{num:.1f} {unit}"
-        num /= 1024
-    return f"{num:.1f} TB"
+from .base import ToolError, format_size
 
 
 async def search_torrents(query: str, limit: int = 5) -> dict[str, Any]:
@@ -48,7 +39,7 @@ async def search_torrents(query: str, limit: int = 5) -> dict[str, Any]:
         "results": [
             {
                 "title": r.get("title"),
-                "size": _fmt_size(r.get("size") or 0),
+                "size": format_size(r.get("size") or 0),
                 "seeders": r.get("seeders") or 0,
                 "leechers": r.get("leechers") or 0,
                 "indexer": r.get("indexer"),

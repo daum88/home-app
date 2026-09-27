@@ -150,7 +150,7 @@ def _position_for(name: str, category: str) -> str:
     return CATEGORY_POSITION.get(category, "fridge")
 
 
-def _unit_and_quantity(name: str, qty: float | None) -> tuple[str, float]:
+def _unit_and_quantity(qty: float | None) -> tuple[str, float]:
     """Guess a sensible unit/quantity from the receipt line.
 
     Weighed produce has a fractional quantity (0.238 kg of apples). hOn stores
@@ -314,7 +314,7 @@ def _build_payload(
     note: str = "",
     position: str | None = None,
 ) -> dict[str, Any]:
-    unit, quantity = _unit_and_quantity(name, qty)
+    unit, quantity = _unit_and_quantity(qty)
     return {
         "name": name,
         "category": category_id,

@@ -17,12 +17,8 @@ final class AssistantModel: ObservableObject {
     @Published var listening = false
     @Published var speakReplies = true
 
-    private var history: [[String: String]] {
-        messages.filter { !$0.thinking }.map { ["role": $0.role, "content": $0.content] }
-    }
-
     private let synth = AVSpeechSynthesizer()
-    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "et-EE"))
+    private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private let audioEngine = AVAudioEngine()
     private var request: SFSpeechAudioBufferRecognitionRequest?
 
@@ -35,10 +31,9 @@ final class AssistantModel: ObservableObject {
         let thinking = Message(role: "assistant", content: "", thinking: true)
         messages.append(thinking)
         busy = true
-        let hist = history
         Task {
             do {
-                let reply = try await API.chat(t, history: hist)
+                let reply = try await API.chat(t)
                 messages.removeAll { $0.id == thinking.id }
                 messages.append(Message(role: "assistant", content: reply))
                 if fromVoice && speakReplies { speak(reply) }
@@ -52,7 +47,7 @@ final class AssistantModel: ObservableObject {
 
     private func speak(_ text: String) {
         let u = AVSpeechUtterance(string: text)
-        u.voice = AVSpeechSynthesisVoice(language: "et-EE")
+        u.voice = AVSpeechSynthesisVoice(language: "en-US")
         synth.speak(u)
     }
 
@@ -130,7 +125,7 @@ struct GlowingOrb: View {
 }
 
 struct AssistantView: View {
-    @StateObject private var model = AssistantModel()
+    @ObservedObject var model: AssistantModel
 
     private let suggestions: [(String, String, String)] = [
         ("Morning briefing", "sun.and.horizon.fill", "Give me a morning briefing"),
@@ -204,7 +199,7 @@ struct AssistantView: View {
                 }
                 .padding()
             }
-            .onChange(of: model.messages.count) { _ in
+            .onChange(of: model.messages.count) {
                 if let last = model.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
             }
         }

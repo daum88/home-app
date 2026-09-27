@@ -26,7 +26,7 @@ async def transcribe(audio: bytes, filename: str = "audio.webm") -> str:
             resp = await client.post(
                 GROQ_TRANSCRIBE_URL,
                 headers={"Authorization": f"Bearer {config.GROQ_API_KEY}"},
-                data={"model": "whisper-large-v3-turbo", "language": "et"},
+                data={"model": "whisper-large-v3-turbo", "language": "en"},
                 files={"file": (filename, audio, "audio/webm")},
             )
     except httpx.HTTPError as err:

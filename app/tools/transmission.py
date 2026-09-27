@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from .. import config
-from .base import ToolError, run_sync
+from .base import ToolError, format_size, run_sync
 
 _client: Any = None
 
@@ -28,15 +28,6 @@ def _get_client() -> Any:
             timeout=config.REQUEST_TIMEOUT,
         )
     return _client
-
-
-def _fmt_size(num: float) -> str:
-    num = float(num or 0)
-    for unit in ("B", "KB", "MB", "GB", "TB"):
-        if num < 1024 or unit == "TB":
-            return f"{num:.0f} {unit}" if unit == "B" else f"{num:.1f} {unit}"
-        num /= 1024
-    return f"{num:.1f} TB"
 
 
 def _fmt_eta(seconds: int | None) -> str | None:
@@ -82,7 +73,7 @@ def _torrent_dict(t: Any) -> dict[str, Any]:
         "status": _status_name(t),
         "progress": round(float(getattr(t, "percent_done", 0) or 0) * 100, 1),
         "eta": _fmt_eta(eta),
-        "size": _fmt_size(getattr(t, "total_size", 0)),
+        "size": format_size(getattr(t, "total_size", 0)),
         "download_dir": getattr(t, "download_dir", "") or "",
     }
 

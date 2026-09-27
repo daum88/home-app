@@ -70,9 +70,11 @@ downloads/    Transmission download target
 ```
 
 - Drive is **NTFS** (≈1 TB). Has some filesystem corruption (see Known issues).
-- The Pi serves files directly: `GET /api/media/stream?path=<path>` with byte-range
-  support. It auto-transcodes **DTS/TrueHD/FLAC/etc. → AAC** (ffmpeg, video copied)
-  so iPhones can play them. Transcoded streams are progressive (no seeking).
+- The Pi serves files directly: `GET /api/media/stream?path=<path>` with single
+  byte-range support (including suffix ranges, 416 for unsatisfiable ranges).
+  It auto-transcodes **DTS/TrueHD/FLAC/etc. → AAC** (ffmpeg, video copied)
+  so iPhones can play them. In-app unsupported-audio playback uses HLS;
+  offline downloads use a progressive remux.
 
 ### Codec rules (important!)
 - **The TV can't decode 10-bit HEVC/HDR/AV1** — only H.264/x264 plays.
@@ -89,7 +91,7 @@ downloads/    Transmission download target
 ```
 app/main.py            FastAPI routes + background watchers
 app/config.py          all config, read once from .env
-app/db.py              SQLite helpers (recipes, shopping, history, receipts…)
+app/db.py              SQLite helpers (canonical fridge items, recipes, shopping, history, receipts…)
 app/llm.py             DeepSeek (OpenAI-compatible) client + tool loop
 app/prompts.py         system prompt (answers in Estonian)
 app/speech.py          server-side STT (Groq, optional)
@@ -117,7 +119,7 @@ HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
 | `/api/health` | GET | liveness → `{"ok":true}` |
 | `/api/tools` | GET | list tool names + descriptions |
 | `/api/tools/{name}` | POST | run a tool: body `{"args":{…}}` → `{"ok":bool,"data":…,"error":…}` |
-| `/api/chat` | POST | LLM chat: `{"text","history"}` → `{"reply"}` |
+| `/api/chat` | POST | LLM chat: `{"text"}` → `{"reply"}` (recent turns loaded from SQLite; English default) |
 | `/api/stt` | POST | multipart audio → `{"text"}` (optional Groq STT) |
 | `/api/receipts/import` | POST | multipart PDF → parsed receipt |
 | `/api/log` | POST | receive an error line from the app → `{"message"}` |
@@ -136,8 +138,8 @@ HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
 
 ### Background watchers (in `main.py` lifespan)
 - receipts: poll `data/receipts/` every 30 s (+ email every 4th tick)
-- `_letterboxd_watcher`: Letterboxd → Radarr every 30 min
-- `_jellyfin_refresh_watcher`: Jellyfin rescan every 10 min
+- `_letterboxd_watcher`: Letterboxd → Radarr every 30 min (only when Radarr is configured)
+- `_jellyfin_refresh_watcher`: Jellyfin rescan every 10 min (only when Jellyfin is configured)
 - warm-up: hOn tokens + fridge + weather on boot
 
 ### Deploy backend (from the Mac, works via Tailscale)
@@ -180,9 +182,10 @@ xcrun devicectl device process launch --terminate-existing --device <UDID> com.m
   (Settings → General → VPN & Device Management).
 
 ### Server URLs (API.swift)
-- `defaultBases = [http://100.92.219.95:8000, http://192.168.8.147:8000]` — tries
-  Tailscale first, then home LAN.
-- `API.activeBase` = the address that last answered; used to build stream/image URLs.
+- `defaultBases = [http://100.92.219.95:8000, http://192.168.8.147:8000]` — starts
+  with Tailscale, falls back to home LAN, then prefers the last working address.
+- `API.activeBase` = the address that last answered successfully; preferred on
+  subsequent requests and used to build stream/image URLs.
 - **ATS**: `Info.plist` has `NSAllowsArbitraryLoads` + `NSExceptionDomains` for
   `100.92.219.95`, `192.168.8.147`, `100.95.105.68`. On iOS 27, the IP exception
   domains are what actually allow plain-HTTP (AVPlayer specifically). If you add a
@@ -223,29 +226,39 @@ Liquid Glass look: `glassEffect` cards, `Palette.accent` (blue → teal gradient
    `idle-seeding-limit` 0).
 
 ### Playing a movie/episode
-- App fetches library (Jellyfin; falls back to `local_movies` filesystem scan if
-  the Mac is off).
+- App fetches library from Jellyfin; movies fall back to `local_movies` and
+  series/episodes to `local_series`/`local_episodes` when the Mac is offline.
+  Offline entries have no Jellyfin posters, cast or descriptions.
 - `Play` → `GET /api/media/stream?path=<path>` — Pi serves the file directly.
 - Subtitles: app fetches `/api/media/subtitles?path=` (WebVTT) and overlays.
 
 ### Coop receipt → fridge inventory
 - Share extension uploads the PDF to `/api/receipts/import`, or email/`data/receipts/`
-  watcher imports it. Parser handles the Coop "Tšekk nr" format.
+  watcher imports it. Parser handles the Coop "Tšekk nr" format. SQLite
+  `fridge_items` stores one package per receipt line, including repeated barcodes.
+  The original `inventory` table is retained as a read-only migration archive.
+- Fridge tab, widget, recipes, barcode tools, web PWA and voice tools all read
+  the same local inventory. hOn can be imported explicitly by cloud item id;
+  imports never write or delete cloud data and do not resurrect removed items.
 
 ---
 
 ## 7. Known issues & gotchas
 
+- **API is unauthenticated** — Tailscale limits reachability but does not
+  authorize callers. Do not expose :8000 publicly or to untrusted peers;
+  `/api/tools/{name}` permits device control, file reads and media deletion.
+  Coordinated client/server authentication is tracked in `PLAN.md`.
 - **SmartThings PAT expires every 24 h** — washer breaks daily until the user
   generates a new PAT (`account.smartthings.com/tokens`) and it's put in `.env`.
   (OAuth is the long-term fix, deferred.)
 - **Double NAT** (see §1): TP-Link should be in AP mode. Until then, use Tailscale.
 - **Mac must be on for Jellyfin metadata/posters** — streaming works without it
-  (Pi serves files; `local_movies` fallback gives titles but no posters).
+  (Pi scans movies and series/episodes, with titles but no posters).
 - **10-bit HEVC/HDR/AV1** play on iPhone but **not** the TV. Radarr avoids
   downloading them, but pre-existing files remain (flagged with 🔴 badges).
-- **Transcoded streams (DTS) can't seek** (progressive MP4, no Range). Movies with
-  AAC/AC3 seek normally.
+- **Offline transcoded MP4 downloads are progressive**; unsupported-audio
+  in-app playback uses HLS, while native AAC/AC3 files support byte-range seeking.
 - **XviD `.avi`** files won't play on iPhone (no transcode for those).
 - **NTFS corruption**: `/mnt/ketas/serials/Sherlock/` has a stale
   `Fantastic.Beasts…[rarbg]` folder that returns `Input/output error` on delete.
@@ -259,10 +272,15 @@ Liquid Glass look: `glassEffect` cards, `Palette.accent` (blue → teal gradient
 
 ## 8. Conventions
 
-- Answers/UI are **Estonian**; STT/TTS use `et-EE`.
+- The app UI and default assistant replies are **English**; iOS and web
+  speech recognition/TTS default to English (`en-US`). The assistant can match
+  other languages when the user writes in them.
 - Tool errors return `{"ok":false,"error":…}` — never raise out of `run_tool`.
 - Cache device data (weather 5 min, electricity 60 s, fridge 180 s, washer 15 s).
-- The LLM only sees tool *schemas*; handlers validate all input (security boundary).
+- The LLM only sees tool *schemas*; `run_tool` forwards supplied arguments
+  without schema validation. Handlers must validate inputs (especially file
+  paths and destructive actions); add centralized validation before relying on
+  schemas as a security boundary.
 - Commit changes to git (`master`) and push to `origin` (GitHub `daum88/home-app`).
 - After backend changes: rsync to the Pi + `systemctl restart home-voice-assistant`.
 - After iOS changes: `xcodegen generate` (if new files) → build → `devicectl install`.

@@ -8,12 +8,15 @@ Requires an email+password hOn account (see AGENT_GUIDELINES / RESEARCH.md).
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .. import config
 from .base import ToolError
 
-# Cache the fridge status for 60s — pyhOn re-logins on every call otherwise (slow).
+if TYPE_CHECKING:
+    from pyhon import Hon
+
+# Cache the fridge status for 180s — pyhOn re-logins on every call otherwise (slow).
 _status_cache: dict[str, Any] = {"data": None, "ts": 0.0}
 _CACHE_TTL = 180.0
 
@@ -68,7 +71,7 @@ def _setting_value(appliance: Any, key: str) -> Any:
 async def fridge_status() -> dict[str, Any]:
     """Fridge + freezer temperatures, door state, super cool/freeze.
 
-    Result is cached for 60s because every pyhOn call re-runs the slow login.
+    Result is cached for 180s because every pyhOn call re-runs the slow login.
     """
     if _status_cache["data"] is not None and (time.time() - _status_cache["ts"]) < _CACHE_TTL:
         return _status_cache["data"]

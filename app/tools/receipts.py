@@ -9,11 +9,12 @@ Flow per receipt:
      **category**.
   3. Expiry is **estimated** from a category → shelf-life table, based on the
      receipt's purchase date (receipts never contain expiry dates).
-  4. Items are written to SQLite, deduped by receipt number.
+  4. Each package is written to the canonical SQLite fridge inventory,
+     deduped by receipt number and line index; price history stays separate.
 
-hOn has no food-inventory API (verified — pyhOn exposes only fridge control),
-so the fridge inventory lives in this project's SQLite store and is surfaced
-via the web UI and the voice assistant.
+pyhOn only exposes fridge control; hOn Smart Inventory uses a separate cloud
+API (see hon_inventory.py) and is imported explicitly, never written during
+receipt processing.
 """
 from __future__ import annotations
 
@@ -28,7 +29,6 @@ from typing import Any
 import httpx
 
 from .. import config, db
-from . import hon_inventory
 from .base import ToolError
 
 OFF_PRODUCT = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
@@ -319,7 +319,7 @@ def _save_failed(pdf_bytes: bytes, filename: str = "") -> None:
     try:
         dest = receipts_dir() / "failed"
         dest.mkdir(parents=True, exist_ok=True)
-        name = filename or f"failed-{int(time.time())}.pdf"
+        name = Path(filename).name if filename else f"failed-{int(time.time())}.pdf"
         (dest / name).write_bytes(pdf_bytes)
     except OSError:
         pass
@@ -368,7 +368,7 @@ async def import_receipt(pdf_bytes: bytes, filename: str = "") -> dict[str, Any]
     bought_on = _parse_receipt_date(parsed.get("date")) or date.today()
 
     added: list[dict[str, Any]] = []
-    for item in items:
+    for line, item in enumerate(items):
         enriched = await _enrich(item["name"], item["barcode"])
         expiry = None
         if enriched["days"] is not None:
@@ -381,6 +381,10 @@ async def import_receipt(pdf_bytes: bytes, filename: str = "") -> dict[str, Any]
             brands=enriched["brands"],
             category=enriched["category"],
             expires_on=expiry,
+            quantity=item["qty"] if item["qty"] and item["qty"] > 0 else 1,
+            unit="kg" if item["qty"] and 0 < item["qty"] < 1 else "pz",
+            receipt_no=receipt_no,
+            receipt_line=line,
         )
         if item["price"]:
             await asyncio.to_thread(
@@ -403,28 +407,7 @@ async def import_receipt(pdf_bytes: bytes, filename: str = "") -> dict[str, Any]
             }
         )
 
-    # Push food items to the hOn fridge inventory (best-effort — never blocks import).
-    hon_result: dict[str, Any] | None = None
-    if config.HON_USER and config.HON_PASS:
-        hon_items = [
-            {
-                "name": it["name"],
-                "category": it["category"],
-                "qty": it["qty"],
-                "expires_on": it["expires_on"],
-                "note": f"Coop {receipt_no}",
-            }
-            for it in added
-            if it["category"] in hon_inventory.CATEGORY_IDS and it["expires_on"]
-        ]
-        if hon_items:
-            try:
-                hon_result = await hon_inventory.add_items(hon_items)
-            except ToolError as err:
-                hon_result = {"error": err.message}
-            except Exception as err:  # noqa: BLE001
-                hon_result = {"error": str(err)}
-
+    # Receipt imports remain local; hOn inventory is only imported on request.
     total = round(sum(it["price"] for it in added if it["price"]), 2)
     await asyncio.to_thread(
         db.receipt_mark,
@@ -440,7 +423,6 @@ async def import_receipt(pdf_bytes: bytes, filename: str = "") -> dict[str, Any]
         "store": parsed.get("store"),
         "date": parsed.get("date"),
         "items": added,
-        "hon": hon_result,
     }
 
 

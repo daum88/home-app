@@ -5,10 +5,13 @@ needs an active Jellyfin client session, so it's a later step.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 import shutil
 import time
+import weakref
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +22,33 @@ from .base import ToolError
 
 _user_cache: dict[str, Any] | None = None
 _library_cache: dict[str, str] = {}
+_client: httpx.AsyncClient | None = None
+_poster_locks: weakref.WeakValueDictionary[str, asyncio.Lock] = weakref.WeakValueDictionary()
+
+
+def open_client() -> None:
+    global _client
+    if _client is None:
+        _client = httpx.AsyncClient(
+            timeout=config.REQUEST_TIMEOUT,
+            limits=httpx.Limits(max_connections=8, max_keepalive_connections=4),
+        )
+
+
+async def close_client() -> None:
+    global _client
+    client, _client = _client, None
+    if client is not None:
+        await client.aclose()
+
+
+@asynccontextmanager
+async def _client_context():
+    if _client is not None and not _client.is_closed:
+        yield _client
+    else:
+        async with httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT) as client:
+            yield client
 
 
 async def _library_id(name: str) -> str | None:
@@ -40,7 +70,7 @@ async def _get(path: str, params: dict[str, str] | None = None) -> Any:
         raise ToolError("Jellyfin isn't configured — add JELLYFIN_URL and JELLYFIN_API_KEY to .env")
     url = config.JELLYFIN_URL + path
     try:
-        async with httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT) as client:
+        async with _client_context() as client:
             resp = await client.get(url, headers={"Authorization": f'MediaBrowser Token="{config.JELLYFIN_API_KEY}"'}, params=params)
             resp.raise_for_status()
             return resp.json()
@@ -53,7 +83,7 @@ async def _post(path: str, json: Any = None) -> Any:
         raise ToolError("Jellyfin isn't configured — add JELLYFIN_URL and JELLYFIN_API_KEY to .env")
     url = config.JELLYFIN_URL + path
     try:
-        async with httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT) as client:
+        async with _client_context() as client:
             resp = await client.post(
                 url,
                 headers={"Authorization": f'MediaBrowser Token="{config.JELLYFIN_API_KEY}"'},
@@ -221,47 +251,63 @@ async def jellyfin_item_detail(item_id: str) -> dict[str, Any]:
     }
 
 
-async def fetch_image(item_id: str) -> tuple[bytes, str] | None:
-    """Proxy a Jellyfin poster image (cached on disk for a week)."""
-    if not _enabled():
-        return None
-    cache_dir = Path(config.DB_PATH).parent / "cache" / "jellyfin"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = cache_dir / f"{item_id}.jpg"
-    if cache_file.exists() and (time.time() - cache_file.stat().st_mtime) < 7 * 86400:
-        try:
+def _cached_image(cache_file: Path) -> tuple[bytes, str] | None:
+    try:
+        if cache_file.is_file() and time.time() - cache_file.stat().st_mtime < 7 * 86400:
             return cache_file.read_bytes(), "image/jpeg"
-        except OSError:
-            pass
-    url = config.JELLYFIN_URL + f"/Items/{item_id}/Images/Primary"
-    try:
-        async with httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT) as client:
-            resp = await client.get(
-                url,
-                headers={"Authorization": f'MediaBrowser Token="{config.JELLYFIN_API_KEY}"'},
-                params={"maxWidth": 400, "quality": 85},
-            )
-            resp.raise_for_status()
-            data = resp.content
-            content_type = resp.headers.get("content-type", "image/jpeg")
-    except httpx.HTTPError:
-        return None
-    if not data:
-        return None
-    try:
-        cache_file.write_bytes(data)
     except OSError:
         pass
-    return data, content_type
+    return None
+
+
+async def fetch_image(item_id: str) -> tuple[bytes, str] | None:
+    """Proxy a Jellyfin poster image (cached on disk for a week)."""
+    if not _enabled() or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", item_id):
+        return None
+    cache_dir = Path(config.DB_PATH).parent / "cache" / "jellyfin"
+    await asyncio.to_thread(cache_dir.mkdir, parents=True, exist_ok=True)
+    cache_file = cache_dir / f"{item_id}.jpg"
+    if cached := await asyncio.to_thread(_cached_image, cache_file):
+        return cached
+    lock = _poster_locks.setdefault(item_id, asyncio.Lock())
+    async with lock:
+        if cached := await asyncio.to_thread(_cached_image, cache_file):
+            return cached
+        url = config.JELLYFIN_URL + f"/Items/{item_id}/Images/Primary"
+        try:
+            async with _client_context() as client:
+                resp = await client.get(
+                    url,
+                    headers={"Authorization": f'MediaBrowser Token="{config.JELLYFIN_API_KEY}"'},
+                    params={"maxWidth": 400, "quality": 85},
+                )
+                resp.raise_for_status()
+                data = resp.content
+                content_type = resp.headers.get("content-type", "image/jpeg")
+        except httpx.HTTPError:
+            return None
+        if not data:
+            return None
+        try:
+            await asyncio.to_thread(cache_file.write_bytes, data)
+        except OSError:
+            pass
+        return data, content_type
 
 
 def _local_path(jellyfin_path: str) -> str:
-    """Translate Jellyfin's SMB path (Mac mount) to the Pi's real path."""
+    """Translate Jellyfin's SMB path and restrict access to the media root."""
+    path = Path(jellyfin_path)
+    if not path.is_absolute():
+        raise ToolError("an absolute media path is required")
+    root = Path(config.FS_ROOT).resolve()
     smb = config.JELLYFIN_SMB_PREFIX
-    root = config.FS_ROOT.rstrip("/")
-    if smb and jellyfin_path.startswith(smb):
-        return root + jellyfin_path[len(smb):]
-    return jellyfin_path
+    if smb and path.is_relative_to(smb):
+        path = root / path.relative_to(smb)
+    resolved = path.resolve()
+    if not resolved.is_relative_to(root):
+        raise ToolError("media path is outside the allowed area")
+    return str(resolved)
 
 
 async def jellyfin_delete(item_id: str) -> dict[str, Any]:
@@ -282,15 +328,15 @@ async def jellyfin_delete(item_id: str) -> dict[str, Any]:
         raise ToolError(f"deleting '{itype}' items isn't supported — pick a movie or series")
     root = Path(config.FS_ROOT).resolve()
     resolved = target.resolve()
-    if resolved != root and not str(resolved).startswith(str(root) + os.sep):
-        raise ToolError("refusing to delete outside the media root")
+    if resolved == root or resolved.parent == root:
+        raise ToolError("refusing to delete a media collection folder")
     if not resolved.exists():
         raise ToolError(f"'{name}' isn't on disk ({resolved})")
     try:
         if resolved.is_dir():
-            shutil.rmtree(resolved)
+            await asyncio.to_thread(shutil.rmtree, resolved)
         else:
-            resolved.unlink()
+            await asyncio.to_thread(resolved.unlink)
     except OSError as err:
         raise ToolError(f"couldn't delete '{name}': {err}") from err
     await _post("/Library/Refresh")
@@ -356,7 +402,7 @@ async def media_file_info(item_id: str) -> dict[str, Any]:
 
 
 def local_path(jellyfin_path: str) -> str:
-    """Public path normaliser: SMB mount path → Pi path, else as-is."""
+    """Resolve a media path under FS_ROOT, translating the Jellyfin SMB mount."""
     return _local_path(jellyfin_path)
 
 
@@ -405,6 +451,10 @@ async def jellyfin_episodes(series_id: str) -> dict[str, Any]:
 
 async def local_movies() -> dict[str, Any]:
     """Scan the films folder directly and list movies (no Jellyfin needed)."""
+    return await asyncio.to_thread(_scan_local_movies)
+
+
+def _scan_local_movies() -> dict[str, Any]:
     root = config.FS_ROOT.rstrip("/") + "/filmid"
     items: list[dict[str, Any]] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -441,3 +491,68 @@ async def local_movies() -> dict[str, Any]:
             })
     items.sort(key=lambda m: (m["name"] or "").lower())
     return {"type": "Movie", "items": items}
+
+
+async def local_series() -> dict[str, Any]:
+    """List TV shows from the Pi drive without Jellyfin metadata."""
+    return await asyncio.to_thread(_scan_local_series)
+
+
+def _scan_local_series() -> dict[str, Any]:
+    root = Path(config.FS_ROOT).resolve() / "serials"
+    if not root.is_dir():
+        return {"type": "Series", "items": []}
+    items = []
+    for folder in root.iterdir():
+        if not folder.is_dir() or folder.is_symlink():
+            continue
+        match = re.search(r"\((\d{4})\)$", folder.name)
+        year = int(match.group(1)) if match else None
+        name = folder.name[:match.start()].strip() if match else folder.name
+        items.append({
+            "id": str(folder), "name": name, "type": "Series", "year": year,
+            "path": str(folder), "image": None,
+        })
+    items.sort(key=lambda item: item["name"].lower())
+    return {"type": "Series", "items": items}
+
+
+async def local_episodes(series_path: str) -> dict[str, Any]:
+    """List TV episodes under one show, restricting scans to the serials folder."""
+    return await asyncio.to_thread(_scan_local_episodes, series_path)
+
+
+def _scan_local_episodes(series_path: str) -> dict[str, Any]:
+    root = (Path(config.FS_ROOT).resolve() / "serials").resolve()
+    folder = Path(_local_path(series_path))
+    if not folder.is_relative_to(root) or folder == root or not folder.is_dir():
+        raise ToolError("series path is outside the TV library")
+    episodes: list[dict[str, Any]] = []
+    for dirpath, _, filenames in os.walk(folder):
+        for filename in sorted(filenames):
+            if not filename.lower().endswith((".mp4", ".m4v", ".mkv", ".avi")):
+                continue
+            candidate = Path(dirpath) / filename
+            try:
+                file_path = Path(_local_path(str(candidate)))
+            except ToolError:
+                continue
+            if not file_path.is_relative_to(folder):
+                continue
+            season_match = re.search(r"[Ss](\d{1,2})[Ee](\d{1,3})", filename)
+            directory_match = re.search(r"Season[ ._-]*(\d+)", str(candidate.parent), re.IGNORECASE)
+            season = int(season_match.group(1)) if season_match else int(directory_match.group(1)) if directory_match else 1
+            episode = int(season_match.group(2)) if season_match else None
+            episodes.append({
+                "id": str(file_path), "name": file_path.stem.replace(".", " ").replace("_", " "),
+                "season": season, "episode": episode, "path": str(file_path),
+            })
+    counts: dict[int, int] = {}
+    for item in episodes:
+        counts[item["season"]] = max(counts.get(item["season"], 0), item["episode"] or 0)
+    for item in episodes:
+        if item["episode"] is None:
+            counts[item["season"]] += 1
+            item["episode"] = counts[item["season"]]
+    episodes.sort(key=lambda item: (item["season"], item["episode"], item["name"].lower()))
+    return {"episodes": episodes}

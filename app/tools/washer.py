@@ -77,7 +77,6 @@ async def _post_commands(commands: list[dict]) -> dict[str, Any]:
 def _parse(raw: dict[str, Any]) -> dict[str, Any]:
     components = raw.get("components", {}) or {}
     main = components.get("main", {}) or {}
-    hca = components.get("hca.main", {}) or {}
 
     def val(cap: str, attr: str) -> Any:
         node = (main.get(cap, {}) or {}).get(attr, {}) or {}

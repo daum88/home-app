@@ -17,8 +17,7 @@ extension Color {
 enum Palette {
     /// Brand accent (Media tab, tab-bar selection, progress) — Blue Slate.
     static let accent = Color(hex: "57737a")
-    /// Soft accent range for the assistant orb + poster shimmer.
-    static let accentGradient = [Color(hex: "57737a"), Color(hex: "85bdbf")]
+    /// Background gradient for the media tab.
     static let screenGradient = LinearGradient(
         colors: [Color(.systemBackground), Color(.systemGroupedBackground)],
         startPoint: .top, endPoint: .bottom)

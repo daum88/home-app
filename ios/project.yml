@@ -4,6 +4,14 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
+schemes:
+  Home:
+    build:
+      targets:
+        Home: all
+    test:
+      targets:
+        - HomeTests
 targets:
   Home:
     type: application
@@ -26,6 +34,19 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         MARKETING_VERSION: "1.0"
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: "NO"
+  HomeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - HomeTests
+    dependencies:
+      - target: Home
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattiasdaum.home.tests
+        SWIFT_VERSION: "5.9"
+        CODE_SIGNING_ALLOWED: "NO"
+        GENERATE_INFOPLIST_FILE: "YES"
   HomeWidget:
     type: app-extension
     platform: iOS

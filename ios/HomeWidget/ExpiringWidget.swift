@@ -9,8 +9,8 @@ struct ExpiringEntry: TimelineEntry {
 struct ExpiringProvider: TimelineProvider {
     func placeholder(in context: Context) -> ExpiringEntry {
         ExpiringEntry(date: Date(), items: [
-            .init(name: "Milk", expiresOn: "2026-09-13", daysLeft: 1),
-            .init(name: "Eggs", expiresOn: "2026-09-20", daysLeft: 8),
+            .init(id: 1, name: "Milk", expiresOn: "2026-09-13", daysLeft: 1),
+            .init(id: 2, name: "Eggs", expiresOn: "2026-09-20", daysLeft: 8),
         ])
     }
 

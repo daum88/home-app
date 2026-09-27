@@ -47,13 +47,13 @@ struct HomeShortcuts: AppShortcutsProvider {
         AppShortcut(intent: WasherStatusIntent(), phrases: [
             "Check the washer with ${applicationName}",
             "${applicationName} washer status",
-        ])
+        ], shortTitle: "Washer status", systemImageName: "washer.fill")
         AppShortcut(intent: StartWasherIntent(), phrases: [
             "Start the washer with ${applicationName}",
             "Run the washing machine with ${applicationName}",
-        ])
+        ], shortTitle: "Start washer", systemImageName: "play.fill")
         AppShortcut(intent: AskHomeIntent(), phrases: [
             "Ask ${applicationName}",
-        ])
+        ], shortTitle: "Ask Home", systemImageName: "bubble.left.fill")
     }
 }

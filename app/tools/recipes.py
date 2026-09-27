@@ -16,7 +16,7 @@ from typing import Any
 import httpx
 
 from .. import config, db
-from . import hon_inventory
+from . import local_inventory
 from .base import ToolError
 
 MEALDB = "https://www.themealdb.com/api/json/v1/1"
@@ -97,7 +97,7 @@ def _detail(meal: dict) -> dict[str, Any]:
 
 async def suggest_recipes() -> dict[str, Any]:
     """Suggest real recipes matching what's in the fridge."""
-    inv = await hon_inventory.list_items()
+    inv = await local_inventory.list_items()
     items = inv.get("items") or []
     if not items:
         raise ToolError("your fridge is empty — add some items first")

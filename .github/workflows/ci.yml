@@ -1,0 +1,41 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: python -m pip install -r requirements.txt ruff
+      - run: python -m compileall -q app scripts tests
+      - run: ruff check app scripts tests --select F401,F821,F841
+      - run: python -m unittest discover -s tests -v
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+  ios:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - run: command -v xcodegen || brew install xcodegen
+      - run: cd ios && xcodegen generate
+      - run: |
+          xcodebuild -project ios/Home.xcodeproj -scheme Home -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -derivedDataPath /tmp/HomeCI CODE_SIGNING_ALLOWED=NO test

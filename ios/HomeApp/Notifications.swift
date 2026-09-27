@@ -11,6 +11,7 @@ final class NotificationMonitor: ObservableObject {
     private var lastWasherRunning = false
     private var lastDoorOpen = false
     private var lastMovieCount = -1
+    private var lastMovieCheck: Date = .distantPast
 
     func start() {
         guard timer == nil else { return }
@@ -50,6 +51,8 @@ final class NotificationMonitor: ObservableObject {
     }
 
     private func checkMovies() async {
+        guard Date().timeIntervalSince(lastMovieCheck) >= 300 else { return }
+        lastMovieCheck = Date()
         guard let list: JellyfinItemList = try? await API.run("jellyfin_library", args: ["media_type": "movie"]) else { return }
         let count = list.items.count
         if lastMovieCount >= 0, count > lastMovieCount {

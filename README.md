@@ -6,22 +6,25 @@ LLM (tool-calling) with real devices and self-hosted media, and adds a full
 Netflix-style movie/TV experience that works from anywhere over Tailscale.
 
 > **Portfolio angle:** the LLM never talks to devices directly — it only emits
-> tool calls that Python validates and executes. One broken integration can
-> never crash the agent.
+> tool calls that Python executes through handlers. Input validation is currently
+> handler-specific (centralized validation is planned); integrations return tool
+> errors rather than crashing the agent.
 
 ## What it does
 
-**Assistant (voice / chat, Estonian)**
+**Assistant (voice / chat, English by default)**
 - Samsung washer (SmartThings), Haier fridge (hOn), Systemair ventilation
 - Weather, electricity prices (Nord Pool via Elering), shopping list
 - Recipes (TheMealDB + URL/text import + LLM parsing), spending, barcode scanning
 - Persistent memory (SQLite chat history)
+- One SQLite fridge inventory shared by the app, widget, web and voice tools;
+  existing hOn items can be imported explicitly without changing hOn
 
 **Media (Netflix-style)**
 - Browse movies / series / cartoons with posters, ratings, cast
 - **Play from anywhere** — the Pi streams files directly (no cloud, no Mac needed)
 - Subtitles (auto `.srt` → overlay, Estonian preferred), downloads to the phone
-- Episode picker for TV series
+- Episode picker for TV series, including a Pi-local fallback when Jellyfin is offline
 - Delete movies, manage torrents, drive usage
 
 **Automation**
@@ -71,7 +74,35 @@ data/           SQLite DB + cache (git-ignored)
 - **[AGENT_GUIDELINES.md](AGENT_GUIDELINES.md)** — full technical reference for
   AI agents / future contributors: every service, IP, API, tool, workflow,
   build step, and gotcha.
-- `PLAN.md`, `RESEARCH.md` — original planning/research notes.
+- [Session handoff](docs/SESSION_SUMMARY.md) — what was implemented, tested and
+  still needs real-device review.
+- [Design and motion brief](docs/DESIGN_BRIEF.md) — proposal for the next UI agent;
+  **not approval to implement** a redesign.
+- `PLAN.md` — current maintenance priorities and original roadmap;
+  `RESEARCH.md` — original research notes.
+
+## Security and testing
+
+The API currently has **no authentication**. Do not expose port 8000 to the
+public internet or an untrusted network: reachable clients can invoke tools,
+read files within `FS_ROOT`, and delete media. Set `FS_ROOT` to the narrowest
+appropriate directory; the default home directory is not a safe sandbox for
+shared access. See `PLAN.md` for the coordinated authentication work.
+
+Run offline backend regression tests with Python 3.11 after installing
+`requirements.txt`:
+
+```bash
+python -m unittest discover -s tests -v
+npm ci && npm test            # web behavior tests
+cd ios
+xcodegen generate
+xcodebuild -project Home.xcodeproj -scheme Home \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO test
+```
+
+See [the real-device checklist](docs/DEVICE_CHECKLIST.md) before deploying;
+CI and simulator tests do not replace Pi/iPhone acceptance checks.
 
 ## Quick start
 

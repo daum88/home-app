@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# One-command install on a fresh Raspberry Pi (DietPi, Python 3.9+).
+# One-command install on a fresh Raspberry Pi (DietPi, Python 3.11+).
 # Creates a venv, installs dependencies, copies .env.example → .env, and
 # installs a systemd unit. Run as root (or with sudo).
 #

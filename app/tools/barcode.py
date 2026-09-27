@@ -8,7 +8,6 @@ from typing import Any
 import httpx
 
 from .. import config, db
-from . import hon_inventory
 from .base import ToolError
 from .receipts import OFF_PRODUCT, _BARCODE_RE, _humanize, _off_category, _rule_for
 
@@ -68,27 +67,10 @@ async def add_barcode_item(barcode: str) -> dict[str, Any]:
         category=info["category"],
         expires_on=expires,
     )
-    # Also push to hOn so the item actually shows up in the app's fridge tab.
-    hon_result: dict[str, Any] | None = None
-    if config.HON_USER and config.HON_PASS:
-        try:
-            hon_result = await hon_inventory.add_items(
-                [
-                    {
-                        "name": info["name"],
-                        "category": info["category"],
-                        "qty": 1,
-                        "expires_on": expires,
-                        "note": "barcode scan",
-                    }
-                ]
-            )
-        except Exception as err:  # noqa: BLE001 — never block the local add on hOn
-            hon_result = {"error": str(err)}
+    # Local SQLite is canonical; hOn inventory is import-only.
     return {
         "name": info["name"],
         "brands": info["brands"],
         "category": info["category"],
         "expires_on": expires,
-        "hon": hon_result,
     }

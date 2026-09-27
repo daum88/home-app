@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "node --test web/*.test.cjs",
+    "check": "node --check web/app.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}

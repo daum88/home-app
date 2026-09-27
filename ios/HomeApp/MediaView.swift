@@ -41,7 +41,6 @@ struct MediaView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .task { await loadContinue() }
-        .onAppear { Task { await loadContinue() } }
         .fullScreenCover(item: $playerPresentation) { p in
             PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title,
                        path: p.path, kind: p.kind, image: p.image,
@@ -56,101 +55,12 @@ struct MediaView: View {
     }
 
     private func play(_ rec: PlaybackRecord) {
-        var comps = URLComponents(string: API.activeBase + "/api/media/stream")
-        comps?.queryItems = [URLQueryItem(name: "path", value: rec.path)]
-        guard let url = comps?.url else { return }
-        var sub = URLComponents(string: API.activeBase + "/api/media/subtitles")
-        sub?.queryItems = [URLQueryItem(name: "path", value: rec.path)]
+        guard let url = API.streamURL(path: rec.path) else { return }
         Haptics.impact(.medium)
-        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url,
+        playerPresentation = PlayerPresentation(url: url, subtitleURL: API.subtitlesURL(path: rec.path),
                                                 title: rec.title ?? "", path: rec.path,
                                                 kind: rec.kind ?? "movie", image: rec.image,
                                                 seriesId: rec.seriesId, season: rec.season, episode: rec.episode)
-    }
-}
-
-// ── Continue watching row ──────────────────────────────────────────────────
-
-struct ContinueWatchingRow: View {
-    let items: [PlaybackRecord]
-    let onPlay: (PlaybackRecord) -> Void
-    let onChanged: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Jätka vaatamist").font(.headline).padding(.horizontal, 16)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(items) { rec in
-                        Button { Haptics.impact(); onPlay(rec) } label: {
-                            ContinueCard(rec: rec)
-                        }
-                        .buttonStyle(PressableButtonStyle())
-                        .contextMenu {
-                            Button { Task { await markWatched(rec) } } label: {
-                                Label("Märgi vaadatuks", systemImage: "checkmark")
-                            }
-                            Button { Task { await clearProgress(rec) } } label: {
-                                Label("Alusta uuesti", systemImage: "gobackward")
-                            }
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-            }
-        }
-    }
-
-    private func markWatched(_ rec: PlaybackRecord) async {
-        try? await API.playbackMarkWatched(rec.path, watched: true)
-        onChanged()
-    }
-
-    private func clearProgress(_ rec: PlaybackRecord) async {
-        try? await API.playbackMarkWatched(rec.path, watched: false)
-        try? await API.playbackSave(path: rec.path, position: 0, duration: rec.duration,
-                                    title: rec.title ?? "", kind: rec.kind ?? "movie", image: rec.image,
-                                    seriesId: rec.seriesId, season: rec.season, episode: rec.episode)
-        onChanged()
-    }
-}
-
-struct ContinueCard: View {
-    let rec: PlaybackRecord
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            PosterImage(imagePath: rec.image)
-                .frame(width: 120)
-                .overlay(alignment: .bottom) {
-                    GeometryReader { geo in
-                        ZStack(alignment: .leading) {
-                            Rectangle().fill(.black.opacity(0.5))
-                            Rectangle().fill(Palette.accent)
-                                .frame(width: max(0, geo.size.width * progress))
-                        }
-                    }
-                    .frame(height: 3)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            Text(rec.title ?? rec.path)
-                .font(.caption.weight(.semibold))
-                .lineLimit(1)
-                .frame(width: 120, alignment: .leading)
-            Text(remainingLabel)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    private var progress: Double {
-        rec.duration > 0 ? min(rec.position / rec.duration, 1) : 0
-    }
-
-    private var remainingLabel: String {
-        let left = max(0, Int(rec.duration - rec.position))
-        if left < 3600 { return "\(left / 60) min järel" }
-        return "\(left / 3600) h \(left % 3600 / 60) min järel"
     }
 }
 
@@ -303,7 +213,11 @@ struct MediaLibraryView: View {
                 }
                 .padding(16)
             } else if let errorMessage {
-                ContentUnavailableView("Couldn't load", systemImage: "wifi.exclamationmark", description: Text(errorMessage))
+                VStack(spacing: 12) {
+                    ContentUnavailableView("Couldn't load", systemImage: "wifi.exclamationmark", description: Text(errorMessage))
+                    Button("Retry") { Task { await load() } }
+                        .buttonStyle(.borderedProminent)
+                }
             } else if items.isEmpty {
                 ContentUnavailableView("Empty library", systemImage: "film", description: Text("No \(mediaType == "series" ? "series" : "movies") yet."))
             } else {
@@ -348,7 +262,6 @@ struct MediaLibraryView: View {
             }
         }
         .task { await load() }
-        .onAppear { Task { await refreshStatus() } }
         .sheet(item: $selected) { item in
             MediaItemDetailSheet(item: item) {
                 items.removeAll { $0.id == item.id }
@@ -368,7 +281,8 @@ struct MediaLibraryView: View {
             errorMessage = nil
         } catch {
             // Fallback: scan the drive directly (works even when the Mac/Jellyfin is off)
-            if let r: JellyfinItemList = try? await API.run("local_movies") {
+            let tool = mediaType == "series" ? "local_series" : "local_movies"
+            if let r: JellyfinItemList = try? await API.run(tool) {
                 items = r.items
                 errorMessage = nil
             } else {
@@ -522,6 +436,13 @@ struct MediaItemDetailSheet: View {
         } message: {
             Text("This removes the files from the drive. It can't be undone.")
         }
+        .alert("Media", isPresented: Binding(
+            get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "")
+        }
         .fullScreenCover(item: $playerPresentation) { p in
             PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title,
                        path: p.path, kind: p.kind, image: p.image,
@@ -541,27 +462,16 @@ struct MediaItemDetailSheet: View {
     }
 
     private func load() async {
-        do {
-            detail = try await API.run("jellyfin_item_detail", args: ["item_id": item.id])
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    private func makeStreamURL(download: Bool = false) -> URL? {
-        var comps = URLComponents(string: API.activeBase + "/api/media/stream")
-        var q = [URLQueryItem(name: "path", value: item.path)]
-        if download { q.append(URLQueryItem(name: "download", value: "1")) }
-        comps?.queryItems = q
-        return comps?.url
+        detail = try? await API.run("jellyfin_item_detail", args: ["item_id": item.id])
     }
 
     private func play() {
-        guard let url = makeStreamURL() else { return }
-        var sub = URLComponents(string: API.activeBase + "/api/media/subtitles")
-        sub?.queryItems = [URLQueryItem(name: "path", value: item.path)]
+        guard let path = item.path, let url = API.streamURL(path: path) else {
+            errorMessage = "No playable file path is available."
+            return
+        }
         Haptics.impact(.medium)
-        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url, title: item.name,
+        playerPresentation = PlayerPresentation(url: url, subtitleURL: API.subtitlesURL(path: path), title: item.name,
                                                 path: item.path, kind: "movie", image: item.image)
     }
 
@@ -569,8 +479,12 @@ struct MediaItemDetailSheet: View {
         downloading = true
         downloadStatus = "Downloading…"
         defer { downloading = false }
-        guard let url = makeStreamURL(download: true) else { return }
-        let base = (item.path as NSString?)?.lastPathComponent ?? "\(item.name).mp4"
+        guard let path = item.path, let url = API.streamURL(path: path, download: true) else {
+            downloadStatus = "Download unavailable"
+            errorMessage = "No downloadable file path is available."
+            return
+        }
+        let base = (path as NSString).lastPathComponent
         let filename = (base as NSString).deletingPathExtension + ".mp4"
         do {
             try await DownloadManager.shared.download(name: item.name, filename: filename, remoteURL: url)
@@ -953,7 +867,7 @@ struct SeriesEpisodesView: View {
                                     .foregroundStyle(.primary)
                                     .contextMenu {
                                         Button { Task { await setWatched(ep, watched: !watched) } } label: {
-                                            Label(watched ? "Märgi vaatamata" : "Märgi vaadatuks",
+                                            Label(watched ? "Mark unwatched" : "Mark watched",
                                                   systemImage: watched ? "circle" : "checkmark.circle")
                                         }
                                     }
@@ -976,7 +890,6 @@ struct SeriesEpisodesView: View {
             }
         }
         .task { await load() }
-        .onAppear { Task { await refreshStatus() } }
         .fullScreenCover(item: $playerPresentation) { p in
             PlayerView(url: p.url, subtitleURL: p.subtitleURL, title: p.title,
                        path: p.path, kind: p.kind, image: p.image,
@@ -991,11 +904,24 @@ struct SeriesEpisodesView: View {
     private func load() async {
         loading = true
         defer { loading = false }
+        let localPath = series.path ?? series.id
         do {
-            let r: JellyfinEpisodeList = try await API.run("jellyfin_episodes", args: ["series_id": series.id])
-            episodes = r.episodes
+            let result: JellyfinEpisodeList
+            if series.id.hasPrefix("/") {
+                result = try await API.run("local_episodes", args: ["series_path": localPath])
+            } else {
+                result = try await API.run("jellyfin_episodes", args: ["series_id": series.id])
+            }
+            episodes = result.episodes
+            errorMessage = nil
         } catch {
-            errorMessage = error.localizedDescription
+            if !series.id.hasPrefix("/"),
+               let result: JellyfinEpisodeList = try? await API.run("local_episodes", args: ["series_path": localPath]) {
+                episodes = result.episodes
+                errorMessage = nil
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
         await refreshStatus()
     }
@@ -1022,14 +948,10 @@ struct SeriesEpisodesView: View {
 
     private func play(_ ep: JellyfinEpisode) {
         guard let path = ep.path else { return }
-        var comps = URLComponents(string: API.activeBase + "/api/media/stream")
-        comps?.queryItems = [URLQueryItem(name: "path", value: path)]
-        guard let url = comps?.url else { return }
-        var sub = URLComponents(string: API.activeBase + "/api/media/subtitles")
-        sub?.queryItems = [URLQueryItem(name: "path", value: path)]
+        guard let url = API.streamURL(path: path) else { return }
         Haptics.impact(.medium)
         let label = "\(series.name) S\(ep.season ?? 0)E\(ep.episode ?? 0) · \(ep.name)"
-        playerPresentation = PlayerPresentation(url: url, subtitleURL: sub?.url, title: label,
+        playerPresentation = PlayerPresentation(url: url, subtitleURL: API.subtitlesURL(path: path), title: label,
                                                 path: path, kind: "episode", image: series.image,
                                                 seriesId: series.id, season: ep.season, episode: ep.episode)
     }

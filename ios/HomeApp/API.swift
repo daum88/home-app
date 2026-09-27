@@ -1,13 +1,11 @@
 import Foundation
 
 enum APIError: LocalizedError {
-    case badURL
     case server(String)
     case decode(String)
 
     var errorDescription: String? {
         switch self {
-        case .badURL: return "Bad URL"
         case .server(let m): return m
         case .decode(let m): return "Decode error: \(m)"
         }
@@ -100,6 +98,9 @@ struct TorrentList: Decodable { var torrents: [Torrent] }
 struct FridgeItem: Decodable, Identifiable {
     var id: Int
     var name: String
+    var barcode: String?
+    var brands: String?
+    var category: String?
     var quantity: Double?
     var unit: String?
     var expiresOn: String?
@@ -138,9 +139,6 @@ struct WeatherNow: Decodable {
     var tempMin: Double?
 }
 
-struct KodiStatus: Decodable { var playing: String?; var paused: Bool?; var percentage: Double? }
-
-struct JellyfinStatus: Decodable { var server: String?; var version: String? }
 struct JellyfinItem: Decodable, Identifiable {
     var id: String
     var name: String
@@ -164,7 +162,6 @@ struct JellyfinItem: Decodable, Identifiable {
     var hdr: Bool?
 }
 struct JellyfinItemList: Decodable { var items: [JellyfinItem] }
-struct JellyfinSearchResults: Decodable { var results: [JellyfinItem] }
 struct JellyfinDeleteResult: Decodable { var deleted: Bool; var name: String?; var path: String? }
 
 struct JellyfinEpisode: Decodable, Identifiable {
@@ -196,9 +193,6 @@ struct JellyfinItemDetail: Decodable {
     var hdr: Bool?
     var sizeMB: Double?
 }
-
-struct StreamURLResult: Decodable { var url: String; var name: String? }
-struct DownloadURLResult: Decodable { var url: String; var name: String?; var filename: String?; var size: Int64? }
 
 struct DiskUsage: Decodable {
     var root: String?
@@ -306,14 +300,14 @@ struct OKResult: Decodable { var ok: Bool }
 
 // ── API client ───────────────────────────────────────────────────────────────
 enum API {
-    /// Candidate server addresses, tried in order.
-    /// Tailscale (100.x) works from anywhere; the LAN IP is the fallback at home.
+    /// Default server addresses: Tailscale first, LAN fallback at home.
+    /// After a connection succeeds, prefer that address until it stops working.
     static let defaultBases = [
         "http://100.92.219.95:8000",   // Tailscale (Pi)
         "http://192.168.8.147:8000"    // Home LAN (Pi)
     ]
 
-    /// Custom override from Settings. Empty = auto (Tailscale → LAN).
+    /// Custom override from Settings. Empty = auto (last working server first).
     static var base: String {
         get { UserDefaults.standard.string(forKey: "serverURL") ?? "" }
         set { UserDefaults.standard.set(newValue, forKey: "serverURL") }
@@ -321,8 +315,9 @@ enum API {
 
     static var bases: [String] {
         let custom = base.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !custom.isEmpty { return [custom] + defaultBases }
-        return defaultBases
+        if !custom.isEmpty { return [custom] + defaultBases.filter { $0 != custom } }
+        guard defaultBases.contains(activeBase) else { return defaultBases }
+        return [activeBase] + defaultBases.filter { $0 != activeBase }
     }
 
     /// The address that last answered successfully — used to build image URLs.
@@ -332,6 +327,21 @@ enum API {
     static func imageURL(_ path: String) -> URL? {
         guard path.hasPrefix("/") else { return URL(string: path) }
         return URL(string: activeBase + path)
+    }
+
+    private static func mediaURL(_ endpoint: String, path: String, download: Bool = false) -> URL? {
+        var components = URLComponents(string: activeBase + "/api/media/" + endpoint)
+        components?.queryItems = [URLQueryItem(name: "path", value: path)]
+        if download { components?.queryItems?.append(URLQueryItem(name: "download", value: "1")) }
+        return components?.url
+    }
+
+    static func streamURL(path: String, download: Bool = false) -> URL? {
+        mediaURL("stream", path: path, download: download)
+    }
+
+    static func subtitlesURL(path: String) -> URL? {
+        mediaURL("subtitles", path: path)
     }
 
     private static func sendOnce<T: Decodable>(_ req: URLRequest) async throws -> T {
@@ -365,8 +375,9 @@ enum API {
             if let contentType { req.setValue(contentType, forHTTPHeaderField: "Content-Type") }
             req.httpBody = body
             do {
+                let result: T = try await sendOnce(req)
                 activeBase = b
-                return try await sendOnce(req)
+                return result
             } catch let e as URLError {
                 AppLog.error("\(b + path): \(e.localizedDescription) (code \(e.code.rawValue))")
                 lastError = e  // connection-level failure → try the next address
@@ -434,8 +445,8 @@ enum API {
         return data
     }
 
-    static func chat(_ text: String, history: [[String: String]]) async throws -> String {
-        let resp: ChatResponse = try await post("/api/chat", json: ["text": text, "history": history], timeout: 120)
+    static func chat(_ text: String) async throws -> String {
+        let resp: ChatResponse = try await post("/api/chat", json: ["text": text], timeout: 120)
         return resp.reply
     }
 

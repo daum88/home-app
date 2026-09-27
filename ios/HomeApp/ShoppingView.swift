@@ -3,11 +3,22 @@ import SwiftUI
 struct ShoppingView: View {
     @State private var items: [ShoppingItem] = []
     @State private var newItem = ""
+    @State private var loading = true
+    @State private var loadError: String?
+    @State private var actionError: String?
+    @State private var confirmClear = false
 
     var body: some View {
         NavigationStack {
             Group {
-                if items.isEmpty {
+                if loading && items.isEmpty {
+                    ProgressView("Loading shopping list…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let loadError, items.isEmpty {
+                    VStack(spacing: 12) {
+                        ContentUnavailableView("Couldn't load shopping list", systemImage: "wifi.exclamationmark", description: Text(loadError))
+                        Button("Retry") { Task { await load() } }.buttonStyle(.borderedProminent)
+                    }
+                } else if items.isEmpty {
                     ContentUnavailableView("Shopping list is empty", systemImage: "cart",
                                            description: Text("Add items below or ask the assistant."))
                 } else {
@@ -27,7 +38,7 @@ struct ShoppingView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Clear") { Task { await clear() } }
+                    Button("Clear") { confirmClear = true }
                         .disabled(items.isEmpty)
                 }
             }
@@ -52,11 +63,29 @@ struct ShoppingView: View {
             }
             .task { await load() }
             .refreshable { await load() }
+            .confirmationDialog("Clear shopping list?", isPresented: $confirmClear, titleVisibility: .visible) {
+                Button("Clear all", role: .destructive) { Task { await clear() } }
+            }
+            .alert("Shopping", isPresented: Binding(
+                get: { actionError != nil }, set: { if !$0 { actionError = nil } }
+            )) {
+                Button("OK", role: .cancel) { actionError = nil }
+            } message: {
+                Text(actionError ?? "")
+            }
         }
     }
 
     private func load() async {
-        if let list: ShoppingList = try? await API.run("shopping_list") { items = list.items }
+        loading = true
+        defer { loading = false }
+        do {
+            let list: ShoppingList = try await API.run("shopping_list")
+            items = list.items
+            loadError = nil
+        } catch {
+            loadError = error.localizedDescription
+        }
     }
 
     private func add() {
@@ -65,27 +94,46 @@ struct ShoppingView: View {
         Haptics.impact(.light)
         newItem = ""
         Task {
-            _ = try? await API.run("shopping_add", args: ["name": name]) as EmptyResult
-            await load()
+            do {
+                let _: EmptyResult = try await API.run("shopping_add", args: ["name": name])
+                await load()
+            } catch {
+                if newItem.isEmpty { newItem = name }
+                actionError = error.localizedDescription
+                Haptics.error()
+            }
         }
     }
 
     private func delete(at offsets: IndexSet) {
         Haptics.impact(.light)
-        for i in offsets {
-            let item = items[i]
-            Task { _ = try? await API.run("shopping_remove", args: ["item_id": item.id]) as RemoveResult }
-        }
+        let removed = offsets.map { items[$0] }
         items.remove(atOffsets: offsets)
+        Task {
+            do {
+                for item in removed {
+                    let _: RemoveResult = try await API.run("shopping_remove", args: ["item_id": item.id])
+                }
+            } catch {
+                actionError = error.localizedDescription
+                Haptics.error()
+                await load()
+            }
+        }
     }
 
     private func clear() async {
-        Haptics.success()
-        _ = try? await API.run("shopping_clear") as EmptyResult
-        await load()
+        do {
+            let _: EmptyResult = try await API.run("shopping_clear")
+            items = []
+            Haptics.success()
+            await load()
+        } catch {
+            actionError = error.localizedDescription
+            Haptics.error()
+        }
     }
 }
-import SwiftUI
 
 struct RecipesView: View {
     @State private var saved: [SavedRecipe] = []

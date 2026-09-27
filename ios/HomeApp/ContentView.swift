@@ -3,8 +3,10 @@ import SwiftUI
 struct ContentView: View {
     @AppStorage("appearance") private var appearance = "light"
     @State private var selection: Tab = .assistant
+    @State private var visited: Set<Tab> = [.assistant]
     @State private var keyboardOpen = false
     @StateObject private var deviceState = DeviceState()
+    @StateObject private var assistantModel = AssistantModel()
     @StateObject private var notifications = NotificationMonitor()
 
     enum Tab: String, CaseIterable {
@@ -13,15 +15,15 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Group {
-                switch selection {
-                case .assistant: AssistantView().transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .devices: DevicesView(state: deviceState).transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .media: MediaView().transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .fridge: FridgeView().transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .recipes: RecipesView().transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .shopping: ShoppingView().transition(.opacity.combined(with: .scale(scale: 0.985)))
-                case .settings: SettingsView().transition(.opacity.combined(with: .scale(scale: 0.985)))
+            ZStack {
+                ForEach(Tab.allCases, id: \.self) { tab in
+                    if visited.contains(tab) {
+                        content(for: tab)
+                            .opacity(selection == tab ? 1 : 0)
+                            .allowsHitTesting(selection == tab)
+                            .accessibilityHidden(selection != tab)
+                            .zIndex(selection == tab ? 1 : 0)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -47,13 +49,28 @@ struct ContentView: View {
         }
     }
 
+    @ViewBuilder private func content(for tab: Tab) -> some View {
+        switch tab {
+        case .assistant: AssistantView(model: assistantModel)
+        case .devices: DevicesView(state: deviceState)
+        case .media: MediaView()
+        case .fridge: FridgeView()
+        case .recipes: RecipesView()
+        case .shopping: ShoppingView()
+        case .settings: SettingsView()
+        }
+    }
+
     // Floating capsule tab bar with a springing selected pill.
     private var tabBar: some View {
         HStack(spacing: 4) {
             ForEach(Tab.allCases, id: \.self) { tab in
                 let isSelected = selection == tab
                 Button {
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) { selection = tab }
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                        visited.insert(tab)
+                        selection = tab
+                    }
                 } label: {
                     VStack(spacing: 3) {
                         Image(systemName: icon(for: tab))

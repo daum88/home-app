@@ -11,6 +11,7 @@
 		17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 352224D39A3938B1CE796D8C /* Shortcuts.swift */; };
 		17E2CDCAC58F0EAC63C6E7D1 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6019896BA2330D3F2F58E1BA /* Server.swift */; };
 		1CC031F8D7F157A9840605CC /* CookModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */; };
+		23C993710F9E8C773B77B77E /* ResumeDecisionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B028E523285883C126F4055D /* ResumeDecisionTests.swift */; };
 		279515DD10EDED77C8490794 /* WasherAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52084F6485437E5C39A360A /* WasherAttributes.swift */; };
 		2800F6F58885E3CE93565B44 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F79B37DB86C3AE5A5353BDC /* Notifications.swift */; };
 		2A30AB00A48CDC94CFB66235 /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271902500543ABF2D32551DB /* Design.swift */; };
@@ -31,6 +32,9 @@
 		7D379398F09040D9E440EB08 /* AppLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11CA242D0C0EA30BE9402347 /* AppLog.swift */; };
 		8EB39C9DD7899423AC88E3CB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E9F2FFFE2211C0FF4C596A6 /* SettingsView.swift */; };
 		98135ACD5954AABC6B172C41 /* FridgeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00D4793D9BF31FA3BA301842 /* FridgeView.swift */; };
+		B19A1242599AAAE81FF7332B /* InventoryDecodingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D4889269FD6B3EFBBA47215 /* InventoryDecodingTests.swift */; };
+		BEA4BC27D81FBE4BEC8BCE49 /* ContinueWatchingRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F41C4B2BA91DCCD33804110 /* ContinueWatchingRow.swift */; };
+		BF9D2FD3A4842BB330834BDC /* ResumeDecision.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF70C84A5196696305595D27 /* ResumeDecision.swift */; };
 		C4EAC8D18D41FFBD5DABE08C /* SpendingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 264E21768AB1066F2AEB532B /* SpendingView.swift */; };
 		D0312B19E56F8DBCCA2A8433 /* AssistantView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9539D4B57548F14E61AA94F /* AssistantView.swift */; };
 		D26DFCAC69C491ED22E15D66 /* ElectricityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45715E4550F9E9483F792E97 /* ElectricityWidget.swift */; };
@@ -54,6 +58,13 @@
 			remoteGlobalIDString = 55F57F4D092A1E6F8C0A415F;
 			remoteInfo = HomeWidget;
 		};
+		F59260D8476FA45929EC249E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F648A09DF594BC533BCA5FD3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 52E844066D197E3B81FA748F;
+			remoteInfo = Home;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -74,6 +85,7 @@
 /* Begin PBXFileReference section */
 		00D4793D9BF31FA3BA301842 /* FridgeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FridgeView.swift; sourceTree = "<group>"; };
 		05837D84D1743B0FE17F1E97 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		061D114E397478B44E5B648E /* HomeTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HomeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingView.swift; sourceTree = "<group>"; };
 		11CA242D0C0EA30BE9402347 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
 		13B5DAF04D002C1AD4716E02 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
@@ -81,6 +93,7 @@
 		25B8C3FA016032683181EB74 /* MediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaView.swift; sourceTree = "<group>"; };
 		264E21768AB1066F2AEB532B /* SpendingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingView.swift; sourceTree = "<group>"; };
 		271902500543ABF2D32551DB /* Design.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Design.swift; sourceTree = "<group>"; };
+		2F41C4B2BA91DCCD33804110 /* ContinueWatchingRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContinueWatchingRow.swift; sourceTree = "<group>"; };
 		337B1DF9E14F6950975720F9 /* ReceiptShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ReceiptShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		352224D39A3938B1CE796D8C /* Shortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shortcuts.swift; sourceTree = "<group>"; };
 		45715E4550F9E9483F792E97 /* ElectricityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ElectricityWidget.swift; sourceTree = "<group>"; };
@@ -91,11 +104,14 @@
 		6D26D831E6DE5D3E9115D1BD /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6F79B37DB86C3AE5A5353BDC /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		78AB22B863DD3087C5C38D89 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7D4889269FD6B3EFBBA47215 /* InventoryDecodingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryDecodingTests.swift; sourceTree = "<group>"; };
 		8173EEA7C4ACD6333A484B80 /* WasherLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherLiveActivity.swift; sourceTree = "<group>"; };
 		929BFBD50EEE7484DF87A122 /* HomeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = HomeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A119CD81B9A14E68B932B5D9 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
 		A52084F6485437E5C39A360A /* WasherAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherAttributes.swift; sourceTree = "<group>"; };
 		AE7355554CA94E7DD487573F /* HomeWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetBundle.swift; sourceTree = "<group>"; };
+		AF70C84A5196696305595D27 /* ResumeDecision.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeDecision.swift; sourceTree = "<group>"; };
+		B028E523285883C126F4055D /* ResumeDecisionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResumeDecisionTests.swift; sourceTree = "<group>"; };
 		B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceState.swift; sourceTree = "<group>"; };
 		B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookModeView.swift; sourceTree = "<group>"; };
 		C78E5781F69B2E1BAE68C31A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -112,6 +128,7 @@
 			isa = PBXGroup;
 			children = (
 				1EB69AE6D5D5B015ABD8500E /* Home.app */,
+				061D114E397478B44E5B648E /* HomeTests.xctest */,
 				929BFBD50EEE7484DF87A122 /* HomeWidget.appex */,
 				337B1DF9E14F6950975720F9 /* ReceiptShare.appex */,
 			);
@@ -125,6 +142,7 @@
 				11CA242D0C0EA30BE9402347 /* AppLog.swift */,
 				E9539D4B57548F14E61AA94F /* AssistantView.swift */,
 				6D26D831E6DE5D3E9115D1BD /* ContentView.swift */,
+				2F41C4B2BA91DCCD33804110 /* ContinueWatchingRow.swift */,
 				B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */,
 				271902500543ABF2D32551DB /* Design.swift */,
 				B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */,
@@ -136,6 +154,7 @@
 				25B8C3FA016032683181EB74 /* MediaView.swift */,
 				6F79B37DB86C3AE5A5353BDC /* Notifications.swift */,
 				A119CD81B9A14E68B932B5D9 /* PlayerView.swift */,
+				AF70C84A5196696305595D27 /* ResumeDecision.swift */,
 				5E9F2FFFE2211C0FF4C596A6 /* SettingsView.swift */,
 				0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */,
 				352224D39A3938B1CE796D8C /* Shortcuts.swift */,
@@ -166,11 +185,21 @@
 			isa = PBXGroup;
 			children = (
 				47603C0B09395CF52DF7FDC0 /* HomeApp */,
+				AF8792B12AF7BCDE9921D259 /* HomeTests */,
 				B83312A218B55D05B9D36AB3 /* HomeWidget */,
 				69279C86AD1CAA6B386F5658 /* ReceiptShare */,
 				776C566A0104D2DBA16F5DB6 /* Shared */,
 				156072FA40260C0FBAAE35F3 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		AF8792B12AF7BCDE9921D259 /* HomeTests */ = {
+			isa = PBXGroup;
+			children = (
+				7D4889269FD6B3EFBBA47215 /* InventoryDecodingTests.swift */,
+				B028E523285883C126F4055D /* ResumeDecisionTests.swift */,
+			);
+			path = HomeTests;
 			sourceTree = "<group>";
 		};
 		B83312A218B55D05B9D36AB3 /* HomeWidget */ = {
@@ -244,6 +273,24 @@
 			productReference = 337B1DF9E14F6950975720F9 /* ReceiptShare.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		AF31213DA71B06E9B09EA3F0 /* HomeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C15959F489528457DA19444D /* Build configuration list for PBXNativeTarget "HomeTests" */;
+			buildPhases = (
+				4CC58563C7B5AE74252419D8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E36DF25B0B5D8E224B93FC24 /* PBXTargetDependency */,
+			);
+			name = HomeTests;
+			packageProductDependencies = (
+			);
+			productName = HomeTests;
+			productReference = 061D114E397478B44E5B648E /* HomeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -282,6 +329,7 @@
 			projectRoot = "";
 			targets = (
 				52E844066D197E3B81FA748F /* Home */,
+				AF31213DA71B06E9B09EA3F0 /* HomeTests */,
 				55F57F4D092A1E6F8C0A415F /* HomeWidget */,
 				8172BBDD1AE5F3D6D4662B01 /* ReceiptShare */,
 			);
@@ -297,6 +345,7 @@
 				7D379398F09040D9E440EB08 /* AppLog.swift in Sources */,
 				D0312B19E56F8DBCCA2A8433 /* AssistantView.swift in Sources */,
 				4EDC639383DE561360EA2821 /* ContentView.swift in Sources */,
+				BEA4BC27D81FBE4BEC8BCE49 /* ContinueWatchingRow.swift in Sources */,
 				1CC031F8D7F157A9840605CC /* CookModeView.swift in Sources */,
 				2A30AB00A48CDC94CFB66235 /* Design.swift in Sources */,
 				5556185ED870799F638FD053 /* DeviceState.swift in Sources */,
@@ -307,12 +356,22 @@
 				5021023F6552B445DE400BE3 /* MediaView.swift in Sources */,
 				2800F6F58885E3CE93565B44 /* Notifications.swift in Sources */,
 				3309CFADD8447D5B81DA12AA /* PlayerView.swift in Sources */,
+				BF9D2FD3A4842BB330834BDC /* ResumeDecision.swift in Sources */,
 				8EB39C9DD7899423AC88E3CB /* SettingsView.swift in Sources */,
 				3330503F8F9D5CF72B6CD208 /* ShoppingView.swift in Sources */,
 				17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */,
 				C4EAC8D18D41FFBD5DABE08C /* SpendingView.swift in Sources */,
 				309D38140572092491F19360 /* WasherAttributes.swift in Sources */,
 				796B1619831E8CCFB6A6C27E /* WasherLiveActivityManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		4CC58563C7B5AE74252419D8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B19A1242599AAAE81FF7332B /* InventoryDecodingTests.swift in Sources */,
+				23C993710F9E8C773B77B77E /* ResumeDecisionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +404,11 @@
 			isa = PBXTargetDependency;
 			target = 8172BBDD1AE5F3D6D4662B01 /* ReceiptShare */;
 			targetProxy = 38E52084CB27683DC28AE90D /* PBXContainerItemProxy */;
+		};
+		E36DF25B0B5D8E224B93FC24 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 52E844066D197E3B81FA748F /* Home */;
+			targetProxy = F59260D8476FA45929EC249E /* PBXContainerItemProxy */;
 		};
 		F02F967A555A7189B0DF22CC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -509,6 +573,25 @@
 			};
 			name = Release;
 		};
+		A319B01445FC0CE1927E3317 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home.tests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Home.app/Home";
+			};
+			name = Release;
+		};
 		CAECB0B2F965569E8DD2AB80 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -529,6 +612,25 @@
 				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E9972A5C63F9283C539E1E33 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mattiasdaum.home.tests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Home.app/Home";
 			};
 			name = Debug;
 		};
@@ -646,6 +748,15 @@
 			buildConfigurations = (
 				1B0052CC5DCDA316E217CB85 /* Debug */,
 				A0D499078A2C717F0427DEEC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C15959F489528457DA19444D /* Build configuration list for PBXNativeTarget "HomeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E9972A5C63F9283C539E1E33 /* Debug */,
+				A319B01445FC0CE1927E3317 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -39,10 +39,6 @@ final class DownloadManager: ObservableObject {
         .sorted { $0.date > $1.date }
     }
 
-    func isDownloaded(_ filename: String) -> Bool {
-        items.contains { $0.filename == filename }
-    }
-
     /// Download a remote file into the local Downloads directory.
     func download(name: String, filename: String, remoteURL: URL) async throws {
         let safeName = filename.isEmpty ? name : filename
@@ -52,7 +48,11 @@ final class DownloadManager: ObservableObject {
         activeDownloads.insert(safeName)
         defer { activeDownloads.remove(safeName); refresh() }
 
-        let (tmp, _) = try await URLSession.shared.download(from: remoteURL)
+        let (tmp, response) = try await URLSession.shared.download(from: remoteURL)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            try? FileManager.default.removeItem(at: tmp)
+            throw APIError.server("Download failed: server returned an error")
+        }
         try? FileManager.default.removeItem(at: dest)
         try FileManager.default.moveItem(at: tmp, to: dest)
     }

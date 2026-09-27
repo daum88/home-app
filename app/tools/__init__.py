@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Awaitable, Callable
 
-from . import transmission, washer, search, fridge, ventilation, inventory, receipts, hon_inventory, files, email_receipts, recipes, weather, shopping, kodi, electricity, barcode, spending, jellyfin
+from . import transmission, washer, search, fridge, ventilation, inventory, receipts, local_inventory, files, email_receipts, recipes, weather, shopping, kodi, electricity, barcode, spending, jellyfin
 from .. import letterboxd
 from .base import ToolError, fail, ok
 
@@ -225,13 +225,13 @@ TOOLS: dict[str, dict[str, Any]] = {
     ),
     "fridge_inventory_list": _tool(
         "fridge_inventory_list",
-        "List the items currently in the hOn fridge inventory (name, quantity, expiry, position).",
+        "List local fridge items (name, quantity, expiry, position).",
         _NO_ARGS,
-        hon_inventory.list_items,
+        local_inventory.list_items,
     ),
     "fridge_inventory_add": _tool(
         "fridge_inventory_add",
-        "Add one item to the hOn fridge inventory (category is guessed from the name).",
+        "Add one item to the local fridge inventory.",
         {
             "type": "object",
             "properties": {
@@ -242,17 +242,23 @@ TOOLS: dict[str, dict[str, Any]] = {
             },
             "required": ["name"],
         },
-        hon_inventory.add_item,
+        local_inventory.add_item,
     ),
     "fridge_inventory_remove": _tool(
         "fridge_inventory_remove",
-        "Remove one item from the hOn fridge inventory by its id.",
+        "Remove one local fridge item by its id.",
         {
             "type": "object",
             "properties": {"item_id": {"type": "integer"}},
             "required": ["item_id"],
         },
-        hon_inventory.remove_item,
+        local_inventory.remove_item,
+    ),
+    "fridge_inventory_import_hon": _tool(
+        "fridge_inventory_import_hon",
+        "Import hOn items to the local fridge once, without deleting or editing cloud items.",
+        _NO_ARGS,
+        local_inventory.import_hon,
     ),
     # --- Local filesystem (hard drive) ---
     "list_files": _tool(
@@ -614,6 +620,22 @@ TOOLS: dict[str, dict[str, Any]] = {
         _NO_ARGS,
         jellyfin.local_movies,
     ),
+    "local_series": _tool(
+        "local_series",
+        "List TV shows from the Pi disk when Jellyfin is offline.",
+        _NO_ARGS,
+        jellyfin.local_series,
+    ),
+    "local_episodes": _tool(
+        "local_episodes",
+        "List episodes from a series folder on the Pi disk.",
+        {
+            "type": "object",
+            "properties": {"series_path": {"type": "string", "description": "Series folder path."}},
+            "required": ["series_path"],
+        },
+        jellyfin.local_episodes,
+    ),
     "jellyfin_episodes": _tool(
         "jellyfin_episodes",
         "List all episodes of a TV series (with season/episode numbers and paths).",
@@ -666,6 +688,6 @@ async def run_tool(name: str, args: dict[str, Any] | None) -> dict[str, Any]:
         return fail(err.message)
     except TypeError as err:
         return fail(f"bad arguments for {name}: {err}")
-    except Exception as err:  # noqa: BLE001 — one dead tool must never kill the agent
+    except Exception:  # noqa: BLE001 — one dead tool must never kill the agent
         log.exception("tool %s crashed", name)
         return fail(f"the {name.replace('_', ' ')} tool failed unexpectedly")

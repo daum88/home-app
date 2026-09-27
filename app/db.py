@@ -9,13 +9,12 @@ import json
 import os
 import sqlite3
 import threading
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 from typing import Any
 
 from . import config
 
 _lock = threading.Lock()
-_initialized = False
 
 
 def _connect() -> sqlite3.Connection:
@@ -23,16 +22,15 @@ def _connect() -> sqlite3.Connection:
     os.makedirs(directory, exist_ok=True)
     conn = sqlite3.connect(config.DB_PATH)
     conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
     return conn
 
 
 def init_db() -> None:
     """Create tables if missing. Safe to call repeatedly."""
-    global _initialized
     with _lock:
         conn = _connect()
         try:
+            conn.execute("PRAGMA journal_mode=WAL")
             conn.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS inventory (
@@ -43,6 +41,34 @@ def init_db() -> None:
                     category   TEXT,
                     expires_on TEXT,
                     added_on   TEXT DEFAULT (datetime('now'))
+                );
+
+                CREATE TABLE IF NOT EXISTS fridge_items (
+                    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                    barcode      TEXT,
+                    name         TEXT NOT NULL,
+                    brands       TEXT,
+                    category     TEXT,
+                    quantity     REAL NOT NULL DEFAULT 1,
+                    unit         TEXT NOT NULL DEFAULT 'pz',
+                    position     TEXT NOT NULL DEFAULT 'fridge',
+                    expires_on   TEXT,
+                    added_on     TEXT DEFAULT (datetime('now')),
+                    legacy_id    INTEGER UNIQUE,
+                    hon_id       INTEGER UNIQUE,
+                    receipt_no   TEXT,
+                    receipt_line INTEGER,
+                    UNIQUE (receipt_no, receipt_line)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_fridge_expiry ON fridge_items(expires_on);
+
+                CREATE TABLE IF NOT EXISTS hon_imports (
+                    hon_id INTEGER PRIMARY KEY
+                );
+
+                CREATE TABLE IF NOT EXISTS legacy_imports (
+                    legacy_id INTEGER PRIMARY KEY
                 );
 
                 CREATE TABLE IF NOT EXISTS device_cache (
@@ -110,7 +136,7 @@ def init_db() -> None:
                 );
                 """
             )
-            # Migrate existing DBs that predate the spending columns.
+            # Migrate existing DBs that predate the spending columns or local fridge items.
             cols = {r["name"] for r in conn.execute("PRAGMA table_info(receipts)").fetchall()}
             if "store" not in cols:
                 conn.execute("ALTER TABLE receipts ADD COLUMN store TEXT")
@@ -118,10 +144,25 @@ def init_db() -> None:
                 conn.execute("ALTER TABLE receipts ADD COLUMN receipt_date TEXT")
             if "total" not in cols:
                 conn.execute("ALTER TABLE receipts ADD COLUMN total REAL")
+            conn.execute("UPDATE inventory SET barcode = NULL WHERE barcode = ''")
+            conn.execute(
+                """INSERT OR IGNORE INTO fridge_items
+                   (legacy_id, barcode, name, brands, category, expires_on, added_on, position)
+                   SELECT id, barcode, name, brands, category, expires_on, added_on,
+                          CASE WHEN category IN ('pantry', 'drinks', 'snacks')
+                               THEN 'pantry' ELSE 'fridge' END
+                   FROM inventory WHERE id NOT IN (SELECT legacy_id FROM legacy_imports)"""
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO legacy_imports(legacy_id) SELECT id FROM inventory"
+            )
+            conn.execute(
+                "INSERT OR IGNORE INTO hon_imports(hon_id) "
+                "SELECT hon_id FROM fridge_items WHERE hon_id IS NOT NULL"
+            )
             conn.commit()
         finally:
             conn.close()
-        _initialized = True
 
 
 # ---------------------------------------------------------------------------
@@ -140,24 +181,31 @@ def _row_to_item(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def inventory_add(
-    *, name: str, barcode: str, brands: str = "", category: str = "", expires_on: str | None = None
-) -> None:
+    *, name: str, barcode: str = "", brands: str = "", category: str = "",
+    expires_on: str | None = None, quantity: float = 1, unit: str = "pz",
+    position: str | None = None, receipt_no: str | None = None,
+    receipt_line: int | None = None,
+) -> int:
+    """Add one package to the canonical inventory, deduping receipt lines only."""
+    location = position or ("pantry" if category in {"pantry", "drinks", "snacks"} else "fridge")
     with _lock:
         conn = _connect()
         try:
-            conn.execute(
-                """
-                INSERT INTO inventory (barcode, name, brands, category, expires_on)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(barcode) DO UPDATE SET
-                    name = excluded.name,
-                    brands = excluded.brands,
-                    category = excluded.category,
-                    expires_on = excluded.expires_on
-                """,
-                (barcode, name, brands, category, expires_on),
+            cursor = conn.execute(
+                """INSERT INTO fridge_items
+                   (barcode, name, brands, category, expires_on, quantity, unit,
+                    position, receipt_no, receipt_line)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(receipt_no, receipt_line) DO NOTHING""",
+                (barcode or None, name, brands, category, expires_on, quantity, unit,
+                 location, receipt_no, receipt_line),
             )
+            item_id = cursor.lastrowid if cursor.rowcount else conn.execute(
+                "SELECT id FROM fridge_items WHERE receipt_no = ? AND receipt_line = ?",
+                (receipt_no, receipt_line),
+            ).fetchone()["id"]
             conn.commit()
+            return item_id
         finally:
             conn.close()
 
@@ -167,8 +215,9 @@ def inventory_list() -> list[dict[str, Any]]:
         conn = _connect()
         try:
             rows = conn.execute(
-                "SELECT barcode, name, brands, category, expires_on, added_on "
-                "FROM inventory ORDER BY (expires_on IS NULL), expires_on ASC"
+                "SELECT id, barcode, name, brands, category, quantity, unit, position, "
+                "expires_on, added_on FROM fridge_items "
+                "ORDER BY (expires_on IS NULL), expires_on ASC, id ASC"
             ).fetchall()
             return [_row_to_item(r) for r in rows]
         finally:
@@ -181,12 +230,48 @@ def inventory_expiring(days: int = 3) -> list[dict[str, Any]]:
         conn = _connect()
         try:
             rows = conn.execute(
-                "SELECT barcode, name, brands, category, expires_on, added_on "
-                "FROM inventory WHERE expires_on IS NOT NULL AND expires_on <= ? "
-                "ORDER BY expires_on ASC",
+                "SELECT id, barcode, name, brands, category, quantity, unit, position, "
+                "expires_on, added_on FROM fridge_items "
+                "WHERE expires_on IS NOT NULL AND expires_on <= ? "
+                "ORDER BY expires_on ASC, id ASC",
                 (cutoff,),
             ).fetchall()
             return [_row_to_item(r) for r in rows]
+        finally:
+            conn.close()
+
+
+def inventory_remove(item_id: int) -> bool:
+    with _lock:
+        conn = _connect()
+        try:
+            removed = conn.execute("DELETE FROM fridge_items WHERE id = ?", (item_id,)).rowcount
+            conn.commit()
+            return bool(removed)
+        finally:
+            conn.close()
+
+
+def inventory_import_hon(items: list[dict[str, Any]]) -> int:
+    """Import hOn snapshots once per cloud id without overwriting local edits."""
+    with _lock:
+        conn = _connect()
+        try:
+            imported = 0
+            for item in items:
+                if not conn.execute(
+                    "INSERT OR IGNORE INTO hon_imports(hon_id) VALUES (?)", (item["id"],)
+                ).rowcount:
+                    continue
+                imported += conn.execute(
+                    """INSERT INTO fridge_items
+                       (hon_id, name, quantity, unit, position, expires_on)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (item["id"], item["name"], item["quantity"], item["unit"],
+                     item["position"], item["expires_on"]),
+                ).rowcount
+            conn.commit()
+            return imported
         finally:
             conn.close()
 
@@ -454,11 +539,14 @@ def shopping_clear() -> None:
 # Conversation history
 # ---------------------------------------------------------------------------
 
-def history_append(role: str, content: str) -> None:
+def history_append_exchange(user_text: str, reply: str) -> None:
     with _lock:
         conn = _connect()
         try:
-            conn.execute("INSERT INTO history (role, content) VALUES (?, ?)", (role, content))
+            conn.executemany(
+                "INSERT INTO history (role, content) VALUES (?, ?)",
+                (("user", user_text), ("assistant", reply)),
+            )
             # Prune to the newest 500 messages so the table never grows unbounded.
             conn.execute(
                 "DELETE FROM history WHERE id NOT IN "

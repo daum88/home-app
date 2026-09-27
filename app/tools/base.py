@@ -30,6 +30,15 @@ def fail(message: str) -> dict[str, Any]:
     return {"ok": False, "error": message}
 
 
+def format_size(num: int | float) -> str:
+    size = float(num or 0)
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1024:
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
 async def run_sync(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     """Run a blocking call in a worker thread so the event loop never blocks.
 

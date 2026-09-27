@@ -4,12 +4,14 @@ import UniformTypeIdentifiers
 
 struct FridgeView: View {
     @State private var items: [FridgeItem] = []
-    @State private var loading = false
+    @State private var loading = true
     @State private var showAdd = false
     @State private var showScanner = false
     @State private var showImport = false
+    @State private var showHonImport = false
     @State private var undoItem: FridgeItem?
     @State private var errorMessage: String?
+    @State private var loadError: String?
     @State private var showSpending = false
     @State private var searchText = ""
     @State private var selectedItem: FridgeItem?
@@ -17,7 +19,14 @@ struct FridgeView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if items.isEmpty {
+                if loading && items.isEmpty {
+                    ProgressView("Loading fridge…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let loadError, items.isEmpty {
+                    VStack(spacing: 12) {
+                        ContentUnavailableView("Couldn't load fridge", systemImage: "wifi.exclamationmark", description: Text(loadError))
+                        Button("Retry") { Task { await load() } }.buttonStyle(.borderedProminent)
+                    }
+                } else if items.isEmpty {
                     ContentUnavailableView("Fridge is empty", systemImage: "refrigerator",
                                            description: Text("Add an item, scan a barcode, or import a Coop receipt."))
                 } else {
@@ -34,6 +43,9 @@ struct FridgeView: View {
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(Theme.danger)
                             }
+                        }
+                        if !searchText.isEmpty && filteredItems.isEmpty {
+                            ContentUnavailableView.search(text: searchText)
                         }
                         ForEach(groupedItems, id: \.position) { group in
                             Section {
@@ -67,7 +79,12 @@ struct FridgeView: View {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button { showSpending = true } label: { Image(systemName: "chart.bar.xaxis").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                     Button { showScanner = true } label: { Image(systemName: "barcode.viewfinder").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
-                    Button { showImport = true } label: { Image(systemName: "doc.badge.plus").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
+                    Menu {
+                        Button("Import Coop PDF", systemImage: "doc.badge.plus") { showImport = true }
+                        Button("Import hOn items", systemImage: "arrow.down.to.line") { showHonImport = true }
+                    } label: {
+                        Image(systemName: "square.and.arrow.down").frame(minWidth: 44, minHeight: 44)
+                    }
                     Button { showAdd = true } label: { Image(systemName: "plus").frame(minWidth: 44, minHeight: 44).contentShape(Rectangle()) }
                 }
             }
@@ -81,6 +98,11 @@ struct FridgeView: View {
             .sheet(isPresented: $showSpending) { SpendingView() }
             .fileImporter(isPresented: $showImport, allowedContentTypes: [.pdf]) { result in
                 if case .success(let url) = result { Task { await importReceipt(url) } }
+            }
+            .confirmationDialog("Import hOn items?", isPresented: $showHonImport, titleVisibility: .visible) {
+                Button("Import from hOn") { Task { await importHon() } }
+            } message: {
+                Text("Copies cloud items to this app without changing hOn. Items already in both lists may appear twice.")
             }
             .alert("Fridge", isPresented: Binding(
                 get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
@@ -107,7 +129,7 @@ struct FridgeView: View {
                 .sorted { ($0.expiresOn ?? "9999-12-31") < ($1.expiresOn ?? "9999-12-31") }
             if !matches.isEmpty { groups.append((p, matches)) }
         }
-        let rest = items
+        let rest = filteredItems
             .filter { !order.contains($0.position ?? "") }
             .sorted { ($0.expiresOn ?? "9999-12-31") < ($1.expiresOn ?? "9999-12-31") }
         if !rest.isEmpty { groups.append(("other", rest)) }
@@ -221,13 +243,14 @@ struct FridgeView: View {
 
     private func load() async {
         loading = true
+        defer { loading = false }
         do {
             let inv: FridgeInventory = try await API.run("fridge_inventory_list")
             items = inv.items
+            loadError = nil
         } catch {
-            errorMessage = error.localizedDescription
+            loadError = error.localizedDescription
         }
-        loading = false
     }
 
     private func remove(_ item: FridgeItem) {
@@ -255,10 +278,11 @@ struct FridgeView: View {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { items.append(item) }
         Task {
             do {
-                let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
                 _ = try await API.run("fridge_inventory_add",
                                       args: ["name": item.name, "qty": item.quantity ?? 1,
-                                             "expires_on": item.expiresOn ?? df.string(from: Date()),
+                                             "unit": item.unit ?? "pz", "barcode": item.barcode ?? "",
+                                             "brands": item.brands ?? "", "category": item.category ?? "",
+                                             "expires_on": item.expiresOn ?? "",
                                              "position": item.position ?? "fridge"]) as AddResult
                 await load()
             } catch {
@@ -284,6 +308,18 @@ struct FridgeView: View {
 
 
 
+    private func importHon() async {
+        do {
+            let result: HonImportResult = try await API.run("fridge_inventory_import_hon")
+            await load()
+            errorMessage = "Imported \(result.imported) items. Skipped \(result.skipped)."
+            Haptics.success()
+        } catch {
+            errorMessage = error.localizedDescription
+            Haptics.error()
+        }
+    }
+
     private func importReceipt(_ url: URL) async {
         do {
             let data = try Data(contentsOf: url)
@@ -302,6 +338,11 @@ struct FridgeView: View {
     }
 }
 
+struct HonImportResult: Decodable {
+    let imported: Int
+    let skipped: Int
+}
+
 struct AddItemSheet: View {
     @Environment(\.dismiss) private var dismiss
     var onAdded: () async -> Void
@@ -316,7 +357,7 @@ struct AddItemSheet: View {
         NavigationStack {
             Form {
                 Section("Item") {
-                    TextField("Name (e.g. Piim 2.5%)", text: $name)
+                    TextField("Name (e.g. Milk 2.5%)", text: $name)
                     DatePicker("Expires", selection: $expiry, displayedComponents: .date)
                     Picker("Where", selection: $position) {
                         Text("Fridge").tag("fridge")

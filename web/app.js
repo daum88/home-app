@@ -21,14 +21,12 @@
     doc: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>'),
     trash: svg('<path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/>'),
     chevron: svg('<path d="m9 6 6 6-6 6"/>'),
-    close: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
     refresh: svg('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 3v4h-4"/>'),
     sparkle: svg('<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>'),
     washer: svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 8V6"/>'),
     fan: svg('<path d="M12 3v18"/><path d="M4 7h16"/><path d="M4 17h16"/><circle cx="12" cy="12" r="2"/>'),
     temp: svg('<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z"/>'),
     down: svg('<path d="M12 3v12"/><path d="m6 9 6 6 6-6"/><path d="M4 21h16"/>'),
-    search: svg('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
   };
 
   /* ------------------------------------------------------------------ state */
@@ -194,7 +192,7 @@
       const data = await api("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, history: state.chat.slice(0, -1) }),
+        body: JSON.stringify({ text }),
       });
       thinking.remove();
       state.chat.push({ role: "assistant", content: data.reply });
@@ -326,13 +324,13 @@
       </div>`);
 
     /* Torrents */
-    const trows = (torrents || []).map((t) => `
+    const trows = (torrents || []).map((t, index) => `
       <div class="row">
         <div class="icon" style="background:#5856d6">${I.down}</div>
         <div class="body"><div class="label" style="font-size:14px">${esc(t.name)}</div>
           <div class="sub">${esc(t.status)} · ${t.size}</div>
           <div class="progress" style="margin-top:6px"><span style="width:${Number(t.progress) || 0}%"></span></div></div>
-        <button class="icon-btn" style="width:36px;height:36px;color:var(--red)" onclick="App.removeTorrent('${esc(t.name).replace(/'/g, "\\'")}')">${I.trash}</button>
+        <button class="icon-btn torrent-remove" style="width:36px;height:36px;color:var(--red)" data-index="${index}">${I.trash}</button>
       </div>`).join("");
     h.push(`
       <div class="card">
@@ -353,6 +351,9 @@
       </div>`);
 
     $("#view").innerHTML = h.join("");
+    $$("#view .torrent-remove").forEach((button) => {
+      button.addEventListener("click", () => removeTorrent(torrents[Number(button.dataset.index)].name));
+    });
   }
 
   async function washer(action) {
@@ -391,14 +392,17 @@
       const r = await tool("search_torrents", { query: q });
       const results = (r.data && r.data.results) || [];
       if (!results.length) { el.innerHTML = '<div class="sub" style="padding:8px 0">No results</div>'; return; }
-      el.innerHTML = results.map((x) => `
+      el.innerHTML = results.map((x, index) => `
         <div class="row" style="padding:10px 0">
           <div class="body">
             <div class="label" style="font-size:14px">${esc(x.title)}</div>
-            <div class="sub">${esc(x.indexer || "")} · ${x.seeders} seeds · ${esc(x.size || "")}</div>
+            <div class="sub">${esc(x.indexer || "")} · ${esc(x.seeders)} seeds · ${esc(x.size || "")}</div>
           </div>
-          <button class="btn small green" onclick="App.downloadMagnet('${esc(x.magnet || "").replace(/'/g, "\\'")}')">Download</button>
+          <button class="btn small green magnet-download" data-index="${index}">Download</button>
         </div>`).join("");
+      $$("#torrentResults .magnet-download").forEach((button) => {
+        button.addEventListener("click", () => downloadMagnet(results[Number(button.dataset.index)].magnet || ""));
+      });
     } catch (e) { el.innerHTML = '<div class="sub" style="padding:8px 0">' + esc(e.message) + '</div>'; }
   }
 
@@ -432,18 +436,22 @@
     $("#view").innerHTML = `<div class="empty"><h3>Loading…</h3></div>`;
     $("#topbarActions").innerHTML = `<button class="icon-btn" onclick="App.loadFridge()">${I.refresh}</button>`;
 
-    const [hon, expiring] = await Promise.allSettled([
-      tool("fridge_inventory_list"),
-      tool("inventory_expiring", { days: 7 }),
-    ]);
-    state.devices.hon = hon.status === "fulfilled" ? (hon.value.data || {}).items : [];
-    state.devices.expiring = expiring.status === "fulfilled" ? (expiring.value.data || {}).items : [];
-    renderFridge();
+    try {
+      const result = await tool("fridge_inventory_list");
+      if (!result.ok) throw new Error(result.error || "Couldn't load fridge inventory");
+      state.devices.fridgeItems = (result.data || {}).items || [];
+      renderFridge();
+    } catch (error) {
+      $("#view").innerHTML = `<div class="empty"><h3>Couldn't load fridge</h3><p>${esc(error.message)}</p><button class="btn" onclick="App.loadFridge()">Retry</button></div>`;
+    }
   }
 
   function renderFridge() {
-    const items = state.devices.hon || [];
-    const expiring = state.devices.expiring || [];
+    const items = state.devices.fridgeItems || [];
+    const expiring = items.filter((item) => {
+      const remaining = daysLeft(item.expires_on);
+      return remaining !== null && remaining <= 7;
+    });
 
     const actions = `
       <div class="card">
@@ -458,6 +466,10 @@
         <div class="row pressable" onclick="App.uploadReceipt()">
           <div class="icon" style="background:var(--orange)">${I.doc}</div>
           <div class="body"><div class="label">Import Coop receipt</div></div><div class="value">${I.chevron}</div>
+        </div>
+        <div class="row pressable" onclick="App.importHon()">
+          <div class="icon" style="background:var(--tint)">${I.down}</div>
+          <div class="body"><div class="label">Import hOn items</div><div class="sub">Copy cloud items once; hOn is unchanged</div></div><div class="value">${I.chevron}</div>
         </div>
         <div class="row pressable" onclick="App.recipes()">
           <div class="icon" style="background:var(--indigo)">🍳</div>
@@ -489,6 +501,16 @@
       `<div class="section-h">Fridge inventory</div><div class="card">${itemHtml}</div>`;
   }
 
+  async function importHon() {
+    if (!confirm("Copy hOn items to this app? Existing cloud items are not changed. Matching local items may appear twice.")) return;
+    try {
+      const result = await tool("fridge_inventory_import_hon");
+      if (!result.ok) throw new Error(result.error || "Couldn't import hOn items");
+      toast(`Imported ${result.data.imported} items; skipped ${result.data.skipped}`);
+      loadFridge();
+    } catch (error) { toast(error.message); }
+  }
+
   async function removeFridgeItem(id) {
     if (!confirm("Remove this item?")) return;
     try {
@@ -503,7 +525,7 @@
     openSheet(`
       <div class="grabber"></div>
       <h2>Add to fridge</h2>
-      <div class="field" style="margin:12px 0"><input id="addName" type="text" placeholder="Name (e.g. Piim 2.5%)" /></div>
+      <div class="field" style="margin:12px 0"><input id="addName" type="text" placeholder="Name (e.g. Milk 2.5%)" /></div>
       <div class="field" style="margin-bottom:12px"><input id="addExpiry" type="text" placeholder="Expires (e.g. in 5 days, 2026-10-01)" /></div>
       <div class="segmented" id="addPos">
         <button data-v="fridge" class="on">Fridge</button><button data-v="freezer">Freezer</button><button data-v="pantry">Pantry</button>
@@ -648,7 +670,7 @@
   window.App = {
     setView, loadDevices, loadFridge, sendChat, quick, toggleTTS,
     washer, removeTorrent, addTorrent, searchTorrents, downloadMagnet, openVentSheet,
-    removeFridgeItem, openAddItem, submitAddItem, openScan, uploadReceipt, recipes,
+    removeFridgeItem, importHon, openAddItem, submitAddItem, openScan, uploadReceipt, recipes,
   };
 
   document.addEventListener("DOMContentLoaded", init);

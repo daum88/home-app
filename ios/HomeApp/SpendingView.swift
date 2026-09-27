@@ -76,7 +76,7 @@ struct SpendingView: View {
     }
 
     private func monthLabel(_ iso: String) -> String {
-        let names = ["Jaan", "Veebr", "Märts", "Apr", "Mai", "Juuni", "Juuli", "Aug", "Sept", "Okt", "Nov", "Dets"]
+        let names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
         let parts = iso.split(separator: "-")
         guard parts.count == 2, let idx = Int(parts[1]), (1...12).contains(idx) else { return iso }
         return names[idx - 1]

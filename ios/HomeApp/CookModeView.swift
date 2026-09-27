@@ -64,7 +64,7 @@ struct CookModeView: View {
                             dismiss()
                         }
                     } label: {
-                        Text(index == steps.count - 1 ? "Valmis" : "Järgmine")
+                        Text(index == steps.count - 1 ? "Done" : "Next")
                             .font(.headline)
                             .foregroundStyle(.white)
                             .frame(width: 140, height: 60)
