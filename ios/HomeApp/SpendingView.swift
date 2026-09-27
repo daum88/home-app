@@ -66,7 +66,7 @@ struct SpendingView: View {
                 VStack(spacing: 4) {
                     Text(String(format: "%.0f€", m.total)).font(.caption2).foregroundStyle(.secondary)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Theme.green.gradient)
+                        .fill(Theme.pearl)
                         .frame(width: 34, height: max(6, CGFloat(m.total / maxTotal) * 100))
                     Text(monthLabel(m.month)).font(.caption2).foregroundStyle(.secondary)
                 }

@@ -1,40 +1,45 @@
 import SwiftUI
 
+// ── Hex colour helper ──────────────────────────────────────────────────────
+extension Color {
+    init(hex: String) {
+        let s = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
+        var v: UInt64 = 0
+        for c in s { v = (v << 4) | UInt64(c.hexDigitValue ?? 0) }
+        let r = Double((v >> 16) & 0xFF) / 255
+        let g = Double((v >> 8) & 0xFF) / 255
+        let b = Double(v & 0xFF) / 255
+        self.init(red: r, green: g, blue: b)
+    }
+}
+
 // ── Design tokens ──────────────────────────────────────────────────────────
 enum Palette {
-    /// Brand accent — kept for the Media tab and tab-bar selection.
-    static let accent = Color(red: 0.0, green: 0.45, blue: 0.85)
-    static let accentGradient = [
-        Color(red: 0.0, green: 0.45, blue: 0.85),
-        Color(red: 0.0, green: 0.68, blue: 0.78),
-    ]
+    /// Brand accent (Media tab, tab-bar selection, progress) — Blue Slate.
+    static let accent = Color(hex: "57737a")
+    /// Soft accent range for the assistant orb + poster shimmer.
+    static let accentGradient = [Color(hex: "57737a"), Color(hex: "85bdbf")]
     static let screenGradient = LinearGradient(
         colors: [Color(.systemBackground), Color(.systemGroupedBackground)],
         startPoint: .top, endPoint: .bottom)
 }
 
-/// Matte, Apple-Home-style feature palette. Each device/surface gets its own
-/// calm, slightly-desaturated colour so the app reads rich and professional
-/// instead of monochrome-blue.
+/// The icy aqua → ink palette. Flat, calm, one cohesive temperature.
 enum Theme {
-    static let bg = Color(.systemGroupedBackground)
-    static let blue   = Color(red: 0.16, green: 0.48, blue: 0.92)
-    static let cyan   = Color(red: 0.10, green: 0.63, blue: 0.72)
-    static let teal   = Color(red: 0.13, green: 0.66, blue: 0.55)
-    static let green  = Color(red: 0.24, green: 0.68, blue: 0.40)
-    static let amber  = Color(red: 0.93, green: 0.60, blue: 0.15)
-    static let yellow = Color(red: 0.87, green: 0.72, blue: 0.18)
-    static let coral  = Color(red: 0.91, green: 0.37, blue: 0.33)
-    static let pink   = Color(red: 0.90, green: 0.39, blue: 0.55)
-    static let purple = Color(red: 0.55, green: 0.40, blue: 0.90)
-    static let indigo = Color(red: 0.36, green: 0.42, blue: 0.88)
-    static let sky    = Color(red: 0.16, green: 0.60, blue: 0.88)
-    static let red    = Color(red: 0.86, green: 0.28, blue: 0.27)
+    static let frozen = Color(hex: "c9fbff")   // lightest — chips, light tiles
+    static let icy    = Color(hex: "c2fcf7")   // light aqua — secondary surfaces
+    static let pearl  = Color(hex: "85bdbf")   // accent — progress, positive
+    static let slate  = Color(hex: "57737a")   // main accent — icons, buttons
+    static let ink    = Color(hex: "040f0f")   // dark — text, hero surfaces
+    static let bg     = Color(red: 0.925, green: 0.985, blue: 0.99)  // icy white
+
+    /// Functional danger tint (kept red so errors/doors read clearly).
+    static let danger = Color(red: 0.79, green: 0.28, blue: 0.28)
 }
 
-// Reusable design components — matte surfaces, soft shadows, calm colour.
+// Reusable design components — matte surfaces, soft shadows, flat colour.
 
-/// Matte content card: near-white surface, hairline border, soft shadow.
+/// Matte content card: white surface, hairline ink border, soft shadow.
 struct Card<Content: View>: View {
     let content: Content
     init(@ViewBuilder content: () -> Content) { self.content = content() }
@@ -49,33 +54,29 @@ struct Card<Content: View>: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.05), lineWidth: 0.5)
+                    .strokeBorder(Theme.ink.opacity(0.06), lineWidth: 0.5)
             )
-            .shadow(color: Color.black.opacity(0.05), radius: 12, y: 6)
+            .shadow(color: Theme.ink.opacity(0.06), radius: 12, y: 6)
     }
 }
 
-/// Apple-Home-style feature tile: white glyph on a coloured rounded square.
+/// Apple-Home-style feature tile: white glyph on a flat coloured square.
 struct IconTile: View {
     let systemName: String
     let colors: [Color]
 
     var body: some View {
+        let tint = colors.first ?? Theme.slate
         Image(systemName: systemName)
             .font(.system(size: 18, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: 46, height: 46)
-            .background(
-                LinearGradient(
-                    colors: colors.count >= 2 ? colors : [colors.first ?? Theme.blue, colors.first ?? Theme.blue],
-                    startPoint: .topLeading, endPoint: .bottomTrailing),
-                in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-            )
-            .shadow(color: (colors.first ?? Theme.blue).opacity(0.30), radius: 6, y: 3)
+            .background(tint, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .shadow(color: tint.opacity(0.28), radius: 6, y: 3)
     }
 }
 
-/// Small coloured icon used in list rows — white glyph on a tinted tile.
+/// Small coloured icon used in list rows — white glyph on a flat tinted tile.
 struct RowIcon: View {
     let systemName: String
     let tint: Color
@@ -86,7 +87,7 @@ struct RowIcon: View {
             .foregroundStyle(.white)
             .frame(width: 34, height: 34)
             .background(tint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .shadow(color: tint.opacity(0.28), radius: 4, y: 2)
+            .shadow(color: tint.opacity(0.25), radius: 4, y: 2)
     }
 }
 
@@ -121,7 +122,7 @@ struct StatTile: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 0.5)
+                .strokeBorder(Theme.ink.opacity(0.05), lineWidth: 0.5)
         )
     }
 }
@@ -139,7 +140,7 @@ struct PillStatus: View {
     }
 }
 
-/// Tactile matte action button (scale on press + haptic handled by callers).
+/// Tactile matte action button (flat tint, scale on press).
 struct GlassActionButton: View {
     let label: String
     let systemName: String
@@ -212,7 +213,7 @@ struct SkeletonTile: View {
     }
 }
 
-/// 8px frosted pill progress bar.
+/// 8px progress pill in the accent tone.
 struct ProgressPill: View {
     let progress: Double  // 0...1
 
@@ -223,7 +224,7 @@ struct ProgressPill: View {
                     .fill(Color.primary.opacity(0.08))
                     .overlay(Capsule().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
                 Capsule()
-                    .fill(Palette.accent)
+                    .fill(Theme.pearl)
                     .frame(width: max(geo.size.height, geo.size.width * progress))
             }
         }
@@ -251,7 +252,7 @@ struct StaggeredEntrance: ViewModifier {
 extension View {
     func entrance(_ index: Int = 0) -> some View { modifier(StaggeredEntrance(index: index)) }
 
-    /// Apply the calm matte grouped background used by every non-Media tab.
+    /// Apply the calm icy matte background used by every non-Media tab.
     func matteBackground() -> some View {
         background(Theme.bg.ignoresSafeArea())
     }

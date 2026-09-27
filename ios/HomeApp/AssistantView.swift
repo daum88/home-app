@@ -107,25 +107,23 @@ final class AssistantModel: ObservableObject {
     }
 }
 
-// A glowing, slowly-breathing orb (Siri / Apple Intelligence style) shown while idle.
+// A calm, flat "ink" orb (Siri-style presence) shown while idle.
 struct GlowingOrb: View {
     @State private var pulse = false
 
     var body: some View {
         ZStack {
             Circle()
-                .fill(RadialGradient(colors: [Palette.accent.opacity(0.5), Palette.accentGradient[1].opacity(0.2), .clear],
-                                     center: .center, startRadius: 12, endRadius: 95))
-                .frame(width: 190, height: 190)
-            Circle()
-                .fill(RadialGradient(colors: [.white.opacity(0.95), Palette.accent.opacity(0.55), Palette.accentGradient[1].opacity(0.6)],
-                                     center: .center, startRadius: 6, endRadius: 60))
-                .frame(width: 120, height: 120)
-                .overlay(Circle().stroke(.white.opacity(0.4), lineWidth: 1.5))
+                .fill(Theme.ink)
+                .frame(width: 132, height: 132)
+                .overlay(Circle().stroke(Theme.pearl.opacity(0.7), lineWidth: 1.5))
+                .shadow(color: Theme.ink.opacity(0.25), radius: 18, y: 8)
+            Image(systemName: "sparkles")
+                .font(.system(size: 42, weight: .medium))
+                .foregroundStyle(Theme.frozen)
         }
         .frame(width: 200, height: 200)
-        .clipped()
-        .scaleEffect(pulse ? 1.06 : 0.94)
+        .scaleEffect(pulse ? 1.05 : 0.95)
         .animation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: pulse)
         .onAppear { pulse = true }
     }
@@ -187,7 +185,7 @@ struct AssistantView: View {
                         }
                         .buttonStyle(.bordered)
                         .buttonBorderShape(.capsule)
-                        .tint(Theme.blue)
+                        .tint(Theme.slate)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -218,9 +216,9 @@ struct AssistantView: View {
             Button { model.toggleMic() } label: {
                 Image(systemName: model.listening ? "mic.fill" : "mic")
                     .font(.system(size: 20))
-                    .foregroundStyle(model.listening ? .white : Theme.blue)
+                    .foregroundStyle(model.listening ? .white : Theme.slate)
                     .frame(width: 44, height: 44)
-                    .background(model.listening ? Theme.red : Theme.blue.opacity(0.12), in: Circle())
+                    .background(model.listening ? Theme.danger : Theme.slate.opacity(0.12), in: Circle())
             }
             TextField("Ask anything…", text: $model.input)
                 .padding(.horizontal, 14).padding(.vertical, 10)
@@ -233,7 +231,7 @@ struct AssistantView: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.circle)
-            .tint(Theme.blue)
+            .tint(Theme.ink)
             .disabled(model.busy)
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
@@ -253,8 +251,7 @@ struct Bubble: View {
                 .background {
                     if m.role == "user" {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(LinearGradient(colors: [Theme.blue, Theme.indigo],
-                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .fill(Theme.ink)
                     } else {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
                             .fill(Color(.secondarySystemGroupedBackground))

@@ -18,12 +18,12 @@ struct DevicesView: View {
                 VStack(spacing: 14) {
                     if let errorMessage = state.errorMessage {
                         HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.coral)
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.danger)
                             Text(errorMessage).font(.footnote)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Theme.coral.opacity(0.12),
+                        .background(Theme.danger.opacity(0.12),
                                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     weatherCard.onTapGesture { showWeather = true }.entrance(0)
@@ -72,15 +72,15 @@ struct DevicesView: View {
     }
 
     private var washerStateColor: Color {
-        if washerRunning { return Theme.green }
-        if state.washer?.machineState == "ready" { return Theme.blue }
+        if washerRunning { return Theme.pearl }
+        if state.washer?.machineState == "ready" { return Theme.slate }
         return .secondary
     }
 
     private var washerCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "washer", colors: [Theme.blue, Theme.indigo])
+                IconTile(systemName: "washer.fill", colors: [Theme.slate])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Washer").font(.headline)
                     if state.washer == nil && !state.loaded {
@@ -134,7 +134,7 @@ struct DevicesView: View {
     private var fridgeCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "refrigerator", colors: [Theme.cyan, Theme.blue])
+                IconTile(systemName: "refrigerator.fill", colors: [Theme.pearl])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Fridge").font(.headline)
                     if state.fridge == nil && !state.loaded {
@@ -147,8 +147,8 @@ struct DevicesView: View {
                 if let f = state.fridge, f.fridgeDoorOpen == true { PillStatus(text: "Door open", color: .red) }
             }
             HStack(spacing: 12) {
-                StatTile(label: "Fridge", value: temp(state.fridge?.fridgeTemp), symbol: "thermometer.medium", tint: Theme.cyan)
-                StatTile(label: "Freezer", value: temp(state.fridge?.freezerTemp), symbol: "snowflake", tint: Theme.blue)
+                StatTile(label: "Fridge", value: temp(state.fridge?.fridgeTemp), symbol: "thermometer.medium", tint: Theme.pearl)
+                StatTile(label: "Freezer", value: temp(state.fridge?.freezerTemp), symbol: "snowflake", tint: Theme.slate)
             }
             if let f = state.fridge, f.fridgeSetTemp != nil || f.freezerSetTemp != nil {
                 HStack(spacing: 12) {
@@ -181,15 +181,6 @@ struct DevicesView: View {
     }
 
     // ── Weather ───────────────────────────────────────────────────────────────
-    private var weatherGradient: [Color] {
-        guard let c = state.weather?.condition?.lowercased() else { return [.blue, .indigo] }
-        if c.contains("clear") || c.contains("sun") { return [Color(red: 1.0, green: 0.72, blue: 0.25), .pink] }
-        if c.contains("snow") { return [.cyan, .blue] }
-        if c.contains("rain") || c.contains("drizzle") || c.contains("shower") || c.contains("thunder") { return [.blue, .indigo] }
-        if c.contains("fog") { return [.gray, .teal] }
-        return [.teal, .blue]
-    }
-
     private var weatherSymbol: String {
         guard let c = state.weather?.condition?.lowercased() else { return "cloud.sun.fill" }
         if c.contains("clear") || c.contains("sun") { return (state.weather?.isDay ?? 1) == 0 ? "moon.stars.fill" : "sun.max.fill" }
@@ -224,7 +215,7 @@ struct DevicesView: View {
                 Spacer()
                 Image(systemName: weatherSymbol)
                     .font(.system(size: 46))
-                    .symbolRenderingMode(.multicolor)
+                    .foregroundStyle(Theme.frozen)
             }
             if let w = state.weather {
                 HStack {
@@ -242,8 +233,7 @@ struct DevicesView: View {
         }
         .foregroundStyle(.white)
         .padding(18)
-        .background(LinearGradient(colors: weatherGradient, startPoint: .topLeading, endPoint: .bottomTrailing),
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(Theme.ink, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .onTapGesture { showWeather = true }
     }
 
@@ -259,7 +249,7 @@ struct DevicesView: View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
-                    IconTile(systemName: "bolt.fill", colors: [Theme.yellow, Theme.amber])
+                    IconTile(systemName: "bolt.fill", colors: [Theme.ink])
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Electricity").font(.headline).tracking(-0.01)
                         Text("Nord Pool · Estonia").font(.caption).foregroundStyle(.secondary)
@@ -326,11 +316,11 @@ struct DevicesView: View {
                             Button { scheduleCheapest() } label: {
                                 Label("Schedule", systemImage: "clock.badge.checkmark").font(.caption.weight(.semibold))
                             }
-                            .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(.green)
+                            .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Theme.slate)
                             .controlSize(.small)
                         }
                         .padding(10)
-                        .background(Color.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .background(Theme.pearl.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
             }
@@ -376,10 +366,9 @@ struct DevicesView: View {
     }
 
     private func priceColor(_ p: Double) -> Color {
-        if p < 6 { return Theme.green }
-        if p < 12 { return Theme.yellow }
-        if p < 20 { return Theme.amber }
-        return Theme.red
+        if p < 6 { return Theme.pearl }
+        if p < 12 { return Theme.slate }
+        return Theme.ink
     }
 
     private func hourLabel(_ hours: [ElectricityHour], _ index: Int) -> String {
@@ -390,7 +379,7 @@ struct DevicesView: View {
     private var mediaCard: some View {
         Card {
             HStack(spacing: 12) {
-                IconTile(systemName: "film.stack.fill", colors: [Theme.indigo, Theme.purple])
+                IconTile(systemName: "film.stack.fill", colors: [Theme.slate])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Media library").font(.headline)
                     Text("Jellyfin").font(.subheadline).foregroundStyle(.secondary)
@@ -406,7 +395,7 @@ struct DevicesView: View {
     private var ventCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "fan", colors: [Theme.amber, Theme.coral])
+                IconTile(systemName: "fanblades.fill", colors: [Theme.slate])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ventilation").font(.headline)
                     if state.vent == nil && !state.loaded {
@@ -422,11 +411,11 @@ struct DevicesView: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
-                .tint(.orange)
+                .tint(Theme.slate)
             }
             HStack(spacing: 12) {
-                StatTile(label: "Airflow", value: state.vent?.airflow ?? "—", symbol: "wind", tint: Theme.amber)
-                StatTile(label: "CO₂", value: state.vent.map { "\($0.co2 ?? 0) ppm" } ?? "—", symbol: "aqi.medium", tint: Theme.coral)
+                StatTile(label: "Airflow", value: state.vent?.airflow ?? "—", symbol: "wind", tint: Theme.slate)
+                StatTile(label: "CO₂", value: state.vent.map { "\($0.co2 ?? 0) ppm" } ?? "—", symbol: "aqi.medium", tint: Theme.ink)
             }
             if let v = state.vent {
                 HStack(spacing: 12) {
@@ -443,7 +432,7 @@ struct DevicesView: View {
     private var torrentCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "arrow.down.circle.fill", colors: [Theme.purple, Theme.blue])
+                IconTile(systemName: "tray.and.arrow.down.fill", colors: [Theme.ink])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Downloads").font(.headline)
                     Text(state.torrents.isEmpty ? "No active torrents" : "\(state.torrents.count) active")
@@ -458,7 +447,7 @@ struct DevicesView: View {
                         Spacer()
                         Text("\(Int(t.progress))%").font(.caption).foregroundStyle(.secondary)
                     }
-                    ProgressView(value: t.progress / 100).tint(.purple)
+                    ProgressView(value: t.progress / 100).tint(Theme.slate)
                     Text(t.status).font(.caption2).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)

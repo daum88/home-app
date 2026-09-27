@@ -24,15 +24,15 @@ struct FridgeView: View {
                     List {
                         Section {
                             HStack(spacing: 0) {
-                                summaryStat(count(in: "fridge"), "Fridge", "refrigerator.fill", Theme.cyan)
-                                summaryStat(count(in: "freezer"), "Freezer", "snowflake", Theme.blue)
-                                summaryStat(count(in: "pantry"), "Pantry", "cabinet.fill", Theme.amber)
+                                summaryStat(count(in: "fridge"), "Fridge", "refrigerator.fill", Theme.pearl)
+                                summaryStat(count(in: "freezer"), "Freezer", "snowflake", Theme.slate)
+                                summaryStat(count(in: "pantry"), "Pantry", "cabinet.fill", Theme.slate)
                             }
                             if expiringSoonCount > 0 {
                                 Divider()
                                 Label("\(expiringSoonCount) expiring soon", systemImage: "clock.badge.exclamationmark.fill")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(Theme.danger)
                             }
                         }
                         ForEach(groupedItems, id: \.position) { group in
@@ -145,9 +145,9 @@ struct FridgeView: View {
 
     private func tint(for position: String?) -> Color {
         switch position {
-        case "freezer": return Theme.blue
-        case "pantry": return Theme.amber
-        default: return Theme.cyan
+        case "freezer": return Theme.slate
+        case "pantry": return Theme.slate
+        default: return Theme.pearl
         }
     }
 
@@ -208,7 +208,7 @@ struct FridgeView: View {
     }
 
     private func expiryColor(_ days: Int) -> Color {
-        days < 0 ? Theme.red : days <= 1 ? Theme.red : days <= 3 ? Theme.amber : Theme.green
+        days < 0 ? Theme.danger : days <= 1 ? Theme.danger : days <= 3 ? Theme.slate : Theme.pearl
     }
 
     private func expiryDateLabel(_ iso: String) -> String {

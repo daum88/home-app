@@ -94,7 +94,7 @@ struct ContentView: View {
         case .devices: return "house"
         case .media: return "film.stack"
         case .fridge: return "refrigerator"
-        case .recipes: return "book"
+        case .recipes: return "fork.knife"
         case .shopping: return "cart"
         case .settings: return "gearshape"
         }

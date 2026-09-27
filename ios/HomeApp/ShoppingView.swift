@@ -14,7 +14,7 @@ struct ShoppingView: View {
                     List {
                         ForEach(items) { item in
                             HStack(spacing: 12) {
-                                Circle().fill(Theme.blue.opacity(0.55)).frame(width: 7, height: 7)
+                                Circle().fill(Theme.pearl).frame(width: 7, height: 7)
                                 Text(item.name)
                             }
                         }
@@ -42,7 +42,7 @@ struct ShoppingView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
-                            .background(Theme.blue, in: Circle())
+                            .background(Theme.ink, in: Circle())
                     }
                     .disabled(newItem.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
@@ -355,7 +355,7 @@ struct RecipeDetailSheet: View {
 
     private var heroPlaceholder: some View {
         ZStack {
-            LinearGradient(colors: [Theme.amber, Theme.coral], startPoint: .topLeading, endPoint: .bottomTrailing)
+            Theme.pearl
             Image(systemName: "fork.knife").font(.system(size: 46)).foregroundStyle(.white.opacity(0.9))
         }
     }
@@ -363,11 +363,11 @@ struct RecipeDetailSheet: View {
     // ── Badges ──────────────────────────────────────────────────────────────
     private var badgeItems: [(String, String, Color)] {
         var items: [(String, String, Color)] = []
-        if let category, !category.isEmpty { items.append((category, "tag.fill", Theme.amber)) }
-        if let area, !area.isEmpty { items.append((area, "globe", Theme.sky)) }
+        if let category, !category.isEmpty { items.append((category, "tag.fill", Theme.pearl)) }
+        if let area, !area.isEmpty { items.append((area, "globe", Theme.slate)) }
         if let source, !source.isEmpty {
             let label = source == "mealdb" ? "TheMealDB" : (source == "url" ? "Imported" : source)
-            items.append((label, "link", Theme.purple))
+            items.append((label, "link", Theme.slate))
         }
         return items
     }
@@ -400,7 +400,7 @@ struct RecipeDetailSheet: View {
         VStack(spacing: 0) {
             ForEach(Array(ingredients.enumerated()), id: \.offset) { idx, ing in
                 HStack(alignment: .top, spacing: 12) {
-                    Circle().fill(Theme.coral).frame(width: 7, height: 7).padding(.top, 7)
+                    Circle().fill(Theme.pearl).frame(width: 7, height: 7).padding(.top, 7)
                     Text(ing).font(.subheadline).lineSpacing(2)
                     Spacer(minLength: 0)
                 }
@@ -418,7 +418,7 @@ struct RecipeDetailSheet: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 28, height: 28)
-                        .background(Theme.coral, in: Circle())
+                        .background(Theme.slate, in: Circle())
                     Text(step).font(.subheadline).lineSpacing(3)
                     Spacer(minLength: 0)
                 }
