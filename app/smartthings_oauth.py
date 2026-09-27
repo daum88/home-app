@@ -17,9 +17,9 @@ import httpx
 
 from . import config, db
 
-AUTH_URL = "https://api.smartthings.com/oauth/authorize"
-TOKEN_URL = "https://api.smartthings.com/oauth/token"
-SCOPES = "r:devices:* x:devices:*"
+AUTH_URL = "https://api.smartthings.com/v1/oauth/authorize"
+TOKEN_URL = "https://api.smartthings.com/v1/oauth/token"
+SCOPES = "r:locations:* r:devices:* x:devices:*"
 _CACHE_KEY = "smartthings_oauth"
 
 # In-memory access-token cache (avoids a DB read + refresh race per request).
