@@ -2,15 +2,15 @@ import SwiftUI
 
 struct ContentView: View {
     @AppStorage("appearance") private var appearance = "light"
-    @State private var selection: Tab = .assistant
-    @State private var visited: Set<Tab> = [.assistant]
+    @State private var selection: Tab = .home
+    @State private var visited: Set<Tab> = [.home]
     @State private var keyboardOpen = false
     @StateObject private var deviceState = DeviceState()
     @StateObject private var assistantModel = AssistantModel()
     @StateObject private var notifications = NotificationMonitor()
 
     enum Tab: String, CaseIterable {
-        case assistant, devices, media, fridge, recipes, shopping, settings
+        case home, media, food, assistant
     }
 
     var body: some View {
@@ -27,7 +27,7 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.easeInOut(duration: 0.22), value: selection)
+            .animation(.easeInOut(duration: 0.18), value: selection)
             if !keyboardOpen { tabBar }
         }
         .sensoryFeedback(.selection, trigger: selection)
@@ -51,19 +51,16 @@ struct ContentView: View {
 
     @ViewBuilder private func content(for tab: Tab) -> some View {
         switch tab {
-        case .assistant: AssistantView(model: assistantModel)
-        case .devices: DevicesView(state: deviceState)
+        case .home: DevicesView(state: deviceState)
         case .media: MediaView()
-        case .fridge: FridgeView()
-        case .recipes: RecipesView()
-        case .shopping: ShoppingView()
-        case .settings: SettingsView()
+        case .food: FoodView()
+        case .assistant: AssistantView(model: assistantModel)
         }
     }
 
-    // Floating capsule tab bar with a springing selected pill.
+    // Anchored matte bottom bar — not a floating capsule.
     private var tabBar: some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 6) {
             ForEach(Tab.allCases, id: \.self) { tab in
                 let isSelected = selection == tab
                 Button {
@@ -80,40 +77,27 @@ struct ContentView: View {
                         Text(tab.rawValue.capitalized)
                             .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                             .tracking(-0.01)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
                     }
-                    .foregroundStyle(isSelected ? Palette.accent : Color.secondary)
+                    .foregroundStyle(isSelected ? Theme.teal : Color.secondary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .background(
-                        isSelected ? Palette.accent.opacity(0.13) : Color.clear,
-                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
+                    .padding(.vertical, 6)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(PressableButtonStyle())
             }
         }
-        .padding(6)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-        )
-        .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
+        .padding(.horizontal, 8)
+        .padding(.top, 6)
+        .background(Theme.surface.ignoresSafeArea(edges: .bottom))
+        .overlay(alignment: .top) { Divider().opacity(0.6) }
     }
 
     private func icon(for tab: Tab) -> String {
         switch tab {
+        case .home: return "house"
+        case .media: return "play.rectangle"
+        case .food: return "fork.knife"
         case .assistant: return "bubble.left.and.bubble.right"
-        case .devices: return "house"
-        case .media: return "film.stack"
-        case .fridge: return "refrigerator"
-        case .recipes: return "fork.knife"
-        case .shopping: return "cart"
-        case .settings: return "gearshape"
         }
     }
 }

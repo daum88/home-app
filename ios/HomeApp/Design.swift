@@ -13,32 +13,42 @@ extension Color {
     }
 }
 
-// ── Design tokens ──────────────────────────────────────────────────────────
+// ── Design tokens — paper, ink, light ─────────────────────────────────────
 enum Palette {
-    /// Brand accent (Media tab, tab-bar selection, progress) — Blue Slate.
-    static let accent = Color(hex: "57737a")
-    /// Background gradient for the media tab.
+    /// Brand accent (Media tab, tab-bar selection, progress) — deep teal.
+    static let accent = Color(hex: "276B67")
     static let screenGradient = LinearGradient(
         colors: [Color(.systemBackground), Color(.systemGroupedBackground)],
         startPoint: .top, endPoint: .bottom)
 }
 
-/// The icy aqua → ink palette. Flat, calm, one cohesive temperature.
+/// The paper/ink/light language: warm paper canvas, charcoal-green ink,
+/// deep teal accent, copper highlights, fixed semantic state colours.
 enum Theme {
-    static let frozen = Color(hex: "c9fbff")   // lightest — chips, light tiles
-    static let icy    = Color(hex: "c2fcf7")   // light aqua — secondary surfaces
-    static let pearl  = Color(hex: "85bdbf")   // accent — progress, positive
-    static let slate  = Color(hex: "57737a")   // main accent — icons, buttons
-    static let ink    = Color(hex: "040f0f")   // dark — text, hero surfaces
-    static let bg     = Color(red: 0.925, green: 0.985, blue: 0.99)  // icy white
-
-    /// Functional danger tint (kept red so errors/doors read clearly).
-    static let danger = Color(red: 0.79, green: 0.28, blue: 0.28)
+    static let canvas  = Color(hex: "F5F2EB")   // warm paper background
+    static let surface = Color(hex: "FCFAF5")   // raised surface
+    static let ink     = Color(hex: "182522")   // charcoal-green primary text
+    static let teal    = Color(hex: "276B67")   // deep teal accent (selection/actions)
+    static let copper  = Color(hex: "BA8550")   // warm amber/copper (time/energy)
+    static let night   = Color(hex: "101A1A")   // media night surface
+    static let success = Color(hex: "2E7D5B")   // semantic positive
+    static let warning = Color(hex: "B7791F")   // semantic warning
+    static let danger  = Color(hex: "B3402E")   // semantic danger
+    static let bg      = canvas
+    static let card    = surface
 }
 
-// Reusable design components — matte surfaces, soft shadows, flat colour.
+// ── Typography ─────────────────────────────────────────────────────────────
+extension Font {
+    /// Editorial display face (system serif) for greetings and section leads.
+    static func display(_ size: CGFloat) -> Font {
+        .system(size: size, weight: .semibold, design: .serif)
+    }
+}
 
-/// Matte content card: white surface, hairline ink border, soft shadow.
+// ── Reusable components ────────────────────────────────────────────────────
+
+/// Matte paper card: raised surface, hairline ink border, soft shadow.
 struct Card<Content: View>: View {
     let content: Content
     init(@ViewBuilder content: () -> Content) { self.content = content() }
@@ -49,48 +59,42 @@ struct Card<Content: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color(.secondarySystemGroupedBackground))
+                    .fill(Theme.surface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(Theme.ink.opacity(0.06), lineWidth: 0.5)
+                    .strokeBorder(Theme.ink.opacity(0.07), lineWidth: 0.5)
             )
-            .shadow(color: Theme.ink.opacity(0.06), radius: 12, y: 6)
+            .shadow(color: Theme.ink.opacity(0.05), radius: 10, y: 5)
     }
 }
 
-/// Apple-Home-style feature tile: white glyph on a flat coloured square.
+/// Flat glyph tinted with a feature colour — no square tile behind every icon.
 struct IconTile: View {
     let systemName: String
     let colors: [Color]
 
     var body: some View {
-        let tint = colors.first ?? Theme.slate
         Image(systemName: systemName)
-            .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 46, height: 46)
-            .background(tint, in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .shadow(color: tint.opacity(0.28), radius: 6, y: 3)
+            .font(.system(size: 22, weight: .semibold))
+            .foregroundStyle(colors.first ?? Theme.teal)
     }
 }
 
-/// Small coloured icon used in list rows — white glyph on a flat tinted tile.
+/// Small tinted glyph used in list rows.
 struct RowIcon: View {
     let systemName: String
     let tint: Color
 
     var body: some View {
         Image(systemName: systemName)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 34, height: 34)
-            .background(tint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .shadow(color: tint.opacity(0.25), radius: 4, y: 2)
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 26)
     }
 }
 
-/// Compact stat tile: matte surface, coloured icon, large rounded value.
+/// Compact stat: tinted glyph, large monospaced value, quiet label.
 struct StatTile: View {
     let label: String
     let value: String
@@ -98,17 +102,17 @@ struct StatTile: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
             Image(systemName: symbol)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: 30, height: 30)
-                .background(tint, in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .foregroundStyle(tint)
             Text(value)
                 .font(.system(size: 24, weight: .semibold, design: .rounded))
+                .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
                 .contentTransition(.numericText())
+                .foregroundStyle(Theme.ink)
             Text(label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -117,7 +121,7 @@ struct StatTile: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(.secondarySystemGroupedBackground))
+                .fill(Theme.surface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -135,7 +139,7 @@ struct PillStatus: View {
             .font(.caption.weight(.semibold))
             .foregroundStyle(color)
             .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(color.opacity(0.14), in: Capsule())
+            .background(color.opacity(0.12), in: Capsule())
     }
 }
 
@@ -154,11 +158,11 @@ struct GlassActionButton: View {
                     .foregroundStyle(tint)
                 Text(label)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Theme.ink)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
-            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+            .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
         }
         .buttonStyle(PressableButtonStyle())
     }
@@ -184,7 +188,7 @@ enum Haptics {
     static func selection() { UISelectionFeedbackGenerator().selectionChanged() }
 }
 
-/// Gray rounded bar with an animated shimmer sweep — skeleton loading placeholder.
+/// Quiet rounded bar with an animated shimmer sweep — skeleton loading placeholder.
 struct SkeletonTile: View {
     var height: CGFloat = 14
 
@@ -194,10 +198,10 @@ struct SkeletonTile: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
-                    .fill(Color.primary.opacity(0.07))
+                    .fill(Theme.ink.opacity(0.06))
                 RoundedRectangle(cornerRadius: height / 2, style: .continuous)
                     .fill(
-                        LinearGradient(colors: [.clear, .white.opacity(0.55), .clear],
+                        LinearGradient(colors: [.clear, .white.opacity(0.5), .clear],
                                        startPoint: .leading, endPoint: .trailing)
                     )
                     .frame(width: geo.size.width * 0.5)
@@ -212,7 +216,7 @@ struct SkeletonTile: View {
     }
 }
 
-/// 8px progress pill in the accent tone.
+/// 8px progress pill in the warm copper tone.
 struct ProgressPill: View {
     let progress: Double  // 0...1
 
@@ -220,10 +224,10 @@ struct ProgressPill: View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.primary.opacity(0.08))
-                    .overlay(Capsule().stroke(Color.primary.opacity(0.06), lineWidth: 0.5))
+                    .fill(Theme.ink.opacity(0.08))
+                    .overlay(Capsule().stroke(Theme.ink.opacity(0.06), lineWidth: 0.5))
                 Capsule()
-                    .fill(Theme.pearl)
+                    .fill(Theme.copper)
                     .frame(width: max(geo.size.height, geo.size.width * progress))
             }
         }
@@ -233,25 +237,25 @@ struct ProgressPill: View {
 
 // ── Motion helpers ─────────────────────────────────────────────────────────
 
-/// Fade-and-rise entrance with a small per-index stagger, for "alive" lists.
-struct StaggeredEntrance: ViewModifier {
+/// Restrained fade-and-rise entrance (kept subtle; motion should be purposeful).
+struct Entrance: ViewModifier {
     let index: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shown = false
 
     func body(content: Content) -> some View {
         content
             .opacity(shown ? 1 : 0)
-            .offset(y: shown ? 0 : 16)
-            .animation(.spring(response: 0.55, dampingFraction: 0.86)
-                        .delay(Double(index) * 0.055), value: shown)
+            .offset(y: (shown || reduceMotion) ? 0 : 10)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.25).delay(Double(index) * 0.04), value: shown)
             .onAppear { shown = true }
     }
 }
 
 extension View {
-    func entrance(_ index: Int = 0) -> some View { modifier(StaggeredEntrance(index: index)) }
+    func entrance(_ index: Int = 0) -> some View { modifier(Entrance(index: index)) }
 
-    /// Apply the calm icy matte background used by every non-Media tab.
+    /// Apply the warm paper background used by every non-Media tab.
     func matteBackground() -> some View {
         background(Theme.bg.ignoresSafeArea())
     }

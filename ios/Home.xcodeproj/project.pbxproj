@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		05A8C790D414969AF82BF4F3 /* FoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187512AB5CB29C7710C89563 /* FoodView.swift */; };
 		0DCC1E9BE6D8530D1A9C7EC4 /* WasherLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8173EEA7C4ACD6333A484B80 /* WasherLiveActivity.swift */; };
 		17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 352224D39A3938B1CE796D8C /* Shortcuts.swift */; };
 		17E2CDCAC58F0EAC63C6E7D1 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6019896BA2330D3F2F58E1BA /* Server.swift */; };
@@ -89,6 +90,7 @@
 		0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingView.swift; sourceTree = "<group>"; };
 		11CA242D0C0EA30BE9402347 /* AppLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLog.swift; sourceTree = "<group>"; };
 		13B5DAF04D002C1AD4716E02 /* DownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadManager.swift; sourceTree = "<group>"; };
+		187512AB5CB29C7710C89563 /* FoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodView.swift; sourceTree = "<group>"; };
 		1EB69AE6D5D5B015ABD8500E /* Home.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Home.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		25B8C3FA016032683181EB74 /* MediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaView.swift; sourceTree = "<group>"; };
 		264E21768AB1066F2AEB532B /* SpendingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpendingView.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 				B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */,
 				FF6391D22FFF305821959213 /* DevicesView.swift */,
 				13B5DAF04D002C1AD4716E02 /* DownloadManager.swift */,
+				187512AB5CB29C7710C89563 /* FoodView.swift */,
 				00D4793D9BF31FA3BA301842 /* FridgeView.swift */,
 				DE57E68052B4BA0C6D78A4E4 /* HomeApp.swift */,
 				78AB22B863DD3087C5C38D89 /* Info.plist */,
@@ -351,6 +354,7 @@
 				5556185ED870799F638FD053 /* DeviceState.swift in Sources */,
 				5A07D1FCF88A55E800EE21D1 /* DevicesView.swift in Sources */,
 				774B4E2B98F5B63D9414F9D4 /* DownloadManager.swift in Sources */,
+				05A8C790D414969AF82BF4F3 /* FoodView.swift in Sources */,
 				98135ACD5954AABC6B172C41 /* FridgeView.swift in Sources */,
 				49D7E8136C8C7756667ED8CE /* HomeApp.swift in Sources */,
 				5021023F6552B445DE400BE3 /* MediaView.swift in Sources */,

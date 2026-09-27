@@ -11,11 +11,13 @@ struct DevicesView: View {
     @State private var selectedHour: ElectricityHour?
     @State private var showMedia = false
     @State private var showVentSheet = false
+    @State private var showSettings = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    nowHeader
                     if let errorMessage = state.errorMessage {
                         HStack(spacing: 8) {
                             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.danger)
@@ -26,22 +28,23 @@ struct DevicesView: View {
                         .background(Theme.danger.opacity(0.12),
                                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    weatherCard.onTapGesture { showWeather = true }.entrance(0)
-                    washerCard.onTapGesture { showWasher = true }.entrance(1)
-                    fridgeCard.onTapGesture { showFridge = true }.entrance(2)
-                    electricityCard.entrance(3)
-                    mediaCard.entrance(4)
-                    ventCard.entrance(5)
-                    torrentCard.entrance(6)
+                    weatherCard.onTapGesture { showWeather = true }.entrance(1)
+                    washerCard.onTapGesture { showWasher = true }.entrance(2)
+                    fridgeCard.onTapGesture { showFridge = true }.entrance(3)
+                    electricityCard.entrance(4)
+                    mediaCard.entrance(5)
+                    ventCard.entrance(6)
+                    torrentCard.entrance(7)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
             .matteBackground()
-            .navigationTitle("Devices")
+            .navigationTitle("Home")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
                     Button { Task { await state.loadIfNeeded(force: true) } } label: { Image(systemName: "arrow.clockwise") }
                 }
             }
@@ -57,11 +60,39 @@ struct DevicesView: View {
             .sheet(isPresented: $showWasher) { if let washer = state.washer { WasherSheet(washer: washer) } }
             .sheet(isPresented: $showFridge) { if let fridge = state.fridge { FridgeSheet(fridge: fridge) } }
             .sheet(isPresented: $showMedia) { MediaView() }
+            .sheet(isPresented: $showSettings) { SettingsView() }
             .sheet(isPresented: $showVentSheet) { if let vent = state.vent { VentSheet(vent: vent, onChanged: { state.vent = $0 }) } }
         }
     }
 
     private var washerRunning: Bool { ["run", "running", "washing"].contains(state.washer?.machineState ?? "") }
+
+    // ── "Now" header ──────────────────────────────────────────────────────
+    private var nowHeader: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Good \(greeting)")
+                .font(.display(30))
+                .foregroundStyle(Theme.ink)
+            Text(todayLabel)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+    }
+
+    private var greeting: String {
+        let h = Calendar.current.component(.hour, from: Date())
+        switch h {
+        case 5..<12: return "morning"
+        case 12..<18: return "afternoon"
+        default: return "evening"
+        }
+    }
+
+    private var todayLabel: String {
+        Date().formatted(.dateTime.weekday(.wide).month(.wide).day())
+    }
 
     // ── Washer ────────────────────────────────────────────────────────────────
     private var washerStateText: String {
@@ -72,15 +103,15 @@ struct DevicesView: View {
     }
 
     private var washerStateColor: Color {
-        if washerRunning { return Theme.pearl }
-        if state.washer?.machineState == "ready" { return Theme.slate }
+        if washerRunning { return Theme.success }
+        if state.washer?.machineState == "ready" { return Theme.teal }
         return .secondary
     }
 
     private var washerCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "washer.fill", colors: [Theme.slate])
+                IconTile(systemName: "washer.fill", colors: [Theme.teal])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Washer").font(.headline)
                     if state.washer == nil && !state.loaded {
@@ -109,10 +140,23 @@ struct DevicesView: View {
                 Label("~0.9 kWh · ~\(String(format: "%.2f", washCost)) €/wash", systemImage: "bolt.badge.clock.fill")
                     .font(.caption).foregroundStyle(.secondary)
             }
-            HStack(spacing: 10) {
-                GlassActionButton(label: "Start", systemName: "play.fill", tint: .green) { Task { await state.run("washer_start") } }
-                GlassActionButton(label: "Pause", systemName: "pause.fill", tint: .orange) { Task { await state.run("washer_pause") } }
-                GlassActionButton(label: "Stop", systemName: "stop.fill", tint: .red) { Task { await state.run("washer_stop") } }
+            if state.washer != nil {
+                HStack(spacing: 10) {
+                    GlassActionButton(label: "Start", systemName: "play.fill", tint: Theme.success) { Task { await state.run("washer_start") } }
+                    GlassActionButton(label: "Pause", systemName: "pause.fill", tint: Theme.warning) { Task { await state.run("washer_pause") } }
+                    GlassActionButton(label: "Stop", systemName: "stop.fill", tint: Theme.danger) { Task { await state.run("washer_stop") } }
+                }
+                if washerRunning {
+                    Button { scheduleWasherNotification() } label: {
+                        Label("Notify me when done", systemImage: "bell.badge.fill")
+                            .font(.caption.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Theme.teal)
+                }
+            } else {
+                Label("Washer not configured", systemImage: "info.circle")
+                    .font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -134,7 +178,7 @@ struct DevicesView: View {
     private var fridgeCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "refrigerator.fill", colors: [Theme.pearl])
+                IconTile(systemName: "refrigerator.fill", colors: [Theme.copper])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Fridge").font(.headline)
                     if state.fridge == nil && !state.loaded {
@@ -147,8 +191,8 @@ struct DevicesView: View {
                 if let f = state.fridge, f.fridgeDoorOpen == true { PillStatus(text: "Door open", color: .red) }
             }
             HStack(spacing: 12) {
-                StatTile(label: "Fridge", value: temp(state.fridge?.fridgeTemp), symbol: "thermometer.medium", tint: Theme.pearl)
-                StatTile(label: "Freezer", value: temp(state.fridge?.freezerTemp), symbol: "snowflake", tint: Theme.slate)
+                StatTile(label: "Fridge", value: temp(state.fridge?.fridgeTemp), symbol: "thermometer.medium", tint: Theme.copper)
+                StatTile(label: "Freezer", value: temp(state.fridge?.freezerTemp), symbol: "snowflake", tint: Theme.teal)
             }
             if let f = state.fridge, f.fridgeSetTemp != nil || f.freezerSetTemp != nil {
                 HStack(spacing: 12) {
@@ -215,7 +259,7 @@ struct DevicesView: View {
                 Spacer()
                 Image(systemName: weatherSymbol)
                     .font(.system(size: 46))
-                    .foregroundStyle(Theme.frozen)
+                    .foregroundStyle(Theme.surface)
             }
             if let w = state.weather {
                 HStack {
@@ -316,11 +360,11 @@ struct DevicesView: View {
                             Button { scheduleCheapest() } label: {
                                 Label("Schedule", systemImage: "clock.badge.checkmark").font(.caption.weight(.semibold))
                             }
-                            .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Theme.slate)
+                            .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Theme.teal)
                             .controlSize(.small)
                         }
                         .padding(10)
-                        .background(Theme.pearl.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .background(Theme.copper.opacity(0.14), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
             }
@@ -339,6 +383,26 @@ struct DevicesView: View {
 
     private var washCost: Double {
         0.9 * (state.electricity?.currentCentsPerKwh ?? 0) / 100
+    }
+
+    private func scheduleWasherNotification() {
+        guard let iso = state.washer?.completionTime else { return }
+        let formatter = ISO8601DateFormatter()
+        guard let date = formatter.date(from: iso) else { return }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Washer done"
+            content.body = "Your laundry is ready."
+            content.sound = .default
+            let comps = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: comps, repeats: false)
+            let req = UNNotificationRequest(identifier: "washer-done", content: content, trigger: trigger)
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: ["washer-done"])
+            UNUserNotificationCenter.current().add(req) { _ in
+                DispatchQueue.main.async { Haptics.success() }
+            }
+        }
     }
 
     private func scheduleCheapest() {
@@ -366,9 +430,9 @@ struct DevicesView: View {
     }
 
     private func priceColor(_ p: Double) -> Color {
-        if p < 6 { return Theme.pearl }
-        if p < 12 { return Theme.slate }
-        return Theme.ink
+        if p < 6 { return Theme.success }
+        if p < 12 { return Theme.copper }
+        return Theme.danger
     }
 
     private func hourLabel(_ hours: [ElectricityHour], _ index: Int) -> String {
@@ -379,7 +443,7 @@ struct DevicesView: View {
     private var mediaCard: some View {
         Card {
             HStack(spacing: 12) {
-                IconTile(systemName: "film.stack.fill", colors: [Theme.slate])
+                IconTile(systemName: "film.stack.fill", colors: [Theme.teal])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Media library").font(.headline)
                     Text("Jellyfin").font(.subheadline).foregroundStyle(.secondary)
@@ -395,7 +459,7 @@ struct DevicesView: View {
     private var ventCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "fanblades.fill", colors: [Theme.slate])
+                IconTile(systemName: "fanblades.fill", colors: [Theme.teal])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ventilation").font(.headline)
                     if state.vent == nil && !state.loaded {
@@ -411,10 +475,10 @@ struct DevicesView: View {
                 }
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
-                .tint(Theme.slate)
+                .tint(Theme.teal)
             }
             HStack(spacing: 12) {
-                StatTile(label: "Airflow", value: state.vent?.airflow ?? "—", symbol: "wind", tint: Theme.slate)
+                StatTile(label: "Airflow", value: state.vent?.airflow ?? "—", symbol: "wind", tint: Theme.teal)
                 StatTile(label: "CO₂", value: state.vent.map { "\($0.co2 ?? 0) ppm" } ?? "—", symbol: "aqi.medium", tint: Theme.ink)
             }
             if let v = state.vent {
@@ -447,7 +511,7 @@ struct DevicesView: View {
                         Spacer()
                         Text("\(Int(t.progress))%").font(.caption).foregroundStyle(.secondary)
                     }
-                    ProgressView(value: t.progress / 100).tint(Theme.slate)
+                    ProgressView(value: t.progress / 100).tint(Theme.teal)
                     Text(t.status).font(.caption2).foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)

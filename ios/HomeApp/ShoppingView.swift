@@ -25,7 +25,7 @@ struct ShoppingView: View {
                     List {
                         ForEach(items) { item in
                             HStack(spacing: 12) {
-                                Circle().fill(Theme.pearl).frame(width: 7, height: 7)
+                                Circle().fill(Theme.copper).frame(width: 7, height: 7)
                                 Text(item.name)
                             }
                         }
@@ -403,7 +403,7 @@ struct RecipeDetailSheet: View {
 
     private var heroPlaceholder: some View {
         ZStack {
-            Theme.pearl
+            Theme.copper
             Image(systemName: "fork.knife").font(.system(size: 46)).foregroundStyle(.white.opacity(0.9))
         }
     }
@@ -411,11 +411,11 @@ struct RecipeDetailSheet: View {
     // ── Badges ──────────────────────────────────────────────────────────────
     private var badgeItems: [(String, String, Color)] {
         var items: [(String, String, Color)] = []
-        if let category, !category.isEmpty { items.append((category, "tag.fill", Theme.pearl)) }
-        if let area, !area.isEmpty { items.append((area, "globe", Theme.slate)) }
+        if let category, !category.isEmpty { items.append((category, "tag.fill", Theme.copper)) }
+        if let area, !area.isEmpty { items.append((area, "globe", Theme.teal)) }
         if let source, !source.isEmpty {
             let label = source == "mealdb" ? "TheMealDB" : (source == "url" ? "Imported" : source)
-            items.append((label, "link", Theme.slate))
+            items.append((label, "link", Theme.teal))
         }
         return items
     }
@@ -448,7 +448,7 @@ struct RecipeDetailSheet: View {
         VStack(spacing: 0) {
             ForEach(Array(ingredients.enumerated()), id: \.offset) { idx, ing in
                 HStack(alignment: .top, spacing: 12) {
-                    Circle().fill(Theme.pearl).frame(width: 7, height: 7).padding(.top, 7)
+                    Circle().fill(Theme.copper).frame(width: 7, height: 7).padding(.top, 7)
                     Text(ing).font(.subheadline).lineSpacing(2)
                     Spacer(minLength: 0)
                 }
@@ -466,7 +466,7 @@ struct RecipeDetailSheet: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 28, height: 28)
-                        .background(Theme.slate, in: Circle())
+                        .background(Theme.teal, in: Circle())
                     Text(step).font(.subheadline).lineSpacing(3)
                     Spacer(minLength: 0)
                 }

@@ -105,21 +105,22 @@ final class AssistantModel: ObservableObject {
 // A calm, flat "ink" orb (Siri-style presence) shown while idle.
 struct GlowingOrb: View {
     @State private var pulse = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         ZStack {
             Circle()
                 .fill(Theme.ink)
-                .frame(width: 132, height: 132)
-                .overlay(Circle().stroke(Theme.pearl.opacity(0.7), lineWidth: 1.5))
-                .shadow(color: Theme.ink.opacity(0.25), radius: 18, y: 8)
+                .frame(width: 96, height: 96)
+                .overlay(Circle().stroke(Theme.copper.opacity(0.7), lineWidth: 1.5))
+                .shadow(color: Theme.ink.opacity(0.22), radius: 14, y: 6)
             Image(systemName: "sparkles")
-                .font(.system(size: 42, weight: .medium))
-                .foregroundStyle(Theme.frozen)
+                .font(.system(size: 30, weight: .medium))
+                .foregroundStyle(Theme.surface)
         }
-        .frame(width: 200, height: 200)
-        .scaleEffect(pulse ? 1.05 : 0.95)
-        .animation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: pulse)
+        .frame(width: 130, height: 130)
+        .scaleEffect(pulse && !reduceMotion ? 1.05 : 1)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 2.4).repeatForever(autoreverses: true), value: pulse)
         .onAppear { pulse = true }
     }
 }
@@ -130,9 +131,8 @@ struct AssistantView: View {
     private let suggestions: [(String, String, String)] = [
         ("Morning briefing", "sun.and.horizon.fill", "Give me a morning briefing"),
         ("Washer status", "washer.fill", "Is the washer done?"),
-        ("What's in my fridge?", "refrigerator.fill", "What is in my fridge?"),
-        ("Recipe ideas", "book.fill", "Suggest 3 recipes using what is in my fridge"),
-        ("Expiring soon", "clock.badge.exclamationmark.fill", "What expires this week?"),
+        ("Fridge check", "refrigerator.fill", "What is in my fridge?"),
+        ("Recipe ideas", "fork.knife", "Suggest 3 recipes using what is in my fridge"),
     ]
 
     var body: some View {
@@ -160,32 +160,37 @@ struct AssistantView: View {
 
     // ── Idle placeholder ─────────────────────────────────────────────────────
     private var idleState: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 22) {
             Spacer()
             GlowingOrb()
             Text("How can I help?")
-                .font(.title2.weight(.semibold))
-                .tracking(-0.02)
+                .font(.display(26))
+                .foregroundStyle(Theme.ink)
             Text("Ask about your washer, fridge, recipes, downloads, or files.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(suggestions, id: \.0) { s in
-                        Button { model.send(s.2) } label: {
-                            Label(s.0, systemImage: s.1)
-                                .font(.subheadline.weight(.medium))
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                ForEach(suggestions, id: \.0) { s in
+                    Button { model.send(s.2) } label: {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Image(systemName: s.1).font(.title3).foregroundStyle(Theme.teal)
+                            Text(s.0)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.ink)
+                                .multilineTextAlignment(.leading)
                         }
-                        .buttonStyle(.bordered)
-                        .buttonBorderShape(.capsule)
-                        .tint(Theme.slate)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(14)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .strokeBorder(Theme.ink.opacity(0.06), lineWidth: 0.5))
                     }
+                    .buttonStyle(PressableButtonStyle())
                 }
-                .padding(.horizontal, 20)
             }
-            Spacer()
+            .padding(.horizontal, 20)
             Spacer()
         }
     }
@@ -211,9 +216,9 @@ struct AssistantView: View {
             Button { model.toggleMic() } label: {
                 Image(systemName: model.listening ? "mic.fill" : "mic")
                     .font(.system(size: 20))
-                    .foregroundStyle(model.listening ? .white : Theme.slate)
+                    .foregroundStyle(model.listening ? .white : Theme.teal)
                     .frame(width: 44, height: 44)
-                    .background(model.listening ? Theme.danger : Theme.slate.opacity(0.12), in: Circle())
+                    .background(model.listening ? Theme.danger : Theme.teal.opacity(0.12), in: Circle())
             }
             TextField("Ask anything…", text: $model.input)
                 .padding(.horizontal, 14).padding(.vertical, 10)

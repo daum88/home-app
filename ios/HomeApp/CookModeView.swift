@@ -25,7 +25,7 @@ struct CookModeView: View {
                 .padding(.horizontal, 20).padding(.top, 16)
 
                 ProgressView(value: Double(index + 1), total: Double(steps.count))
-                    .tint(Theme.slate)
+                    .tint(Theme.teal)
                     .padding(.horizontal, 20).padding(.top, 12)
 
                 ScrollView {

@@ -3,12 +3,14 @@ import SwiftUI
 // ── Media tab: poster-grid library + downloads (Transmission). ───────────────
 
 struct MediaView: View {
-    enum Section: String, CaseIterable {
-        case movies, series, downloads, ondevice
+    enum LibrarySection: String, CaseIterable {
+        case movies, series
     }
-    @State private var section: Section = .movies
+    @State private var section: LibrarySection = .movies
     @State private var continueItems: [PlaybackRecord] = []
     @State private var playerPresentation: PlayerPresentation?
+    @State private var showDownloads = false
+    @State private var showOnDevice = false
 
     var body: some View {
         NavigationStack {
@@ -20,10 +22,8 @@ struct MediaView: View {
                 }
 
                 Picker("Section", selection: $section) {
-                    Text("Movies").tag(Section.movies)
-                    Text("Series").tag(Section.series)
-                    Text("Downloads").tag(Section.downloads)
-                    Text("On device").tag(Section.ondevice)
+                    Text("Movies").tag(LibrarySection.movies)
+                    Text("Series").tag(LibrarySection.series)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
@@ -32,13 +32,19 @@ struct MediaView: View {
                 switch section {
                 case .movies: MediaLibraryView(mediaType: "movie")
                 case .series: MediaLibraryView(mediaType: "series")
-                case .downloads: DownloadsView()
-                case .ondevice: DownloadedView()
                 }
             }
-            .background(Palette.screenGradient)
+            .matteBackground()
             .navigationTitle("Media")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button { showOnDevice = true } label: { Image(systemName: "iphone") }
+                    Button { showDownloads = true } label: { Image(systemName: "arrow.down.circle") }
+                }
+            }
+            .sheet(isPresented: $showDownloads) { NavigationStack { DownloadsView() } }
+            .sheet(isPresented: $showOnDevice) { NavigationStack { DownloadedView() } }
         }
         .task { await loadContinue() }
         .fullScreenCover(item: $playerPresentation) { p in

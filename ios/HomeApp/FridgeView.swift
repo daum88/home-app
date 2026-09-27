@@ -33,9 +33,9 @@ struct FridgeView: View {
                     List {
                         Section {
                             HStack(spacing: 0) {
-                                summaryStat(count(in: "fridge"), "Fridge", "refrigerator.fill", Theme.pearl)
-                                summaryStat(count(in: "freezer"), "Freezer", "snowflake", Theme.slate)
-                                summaryStat(count(in: "pantry"), "Pantry", "cabinet.fill", Theme.slate)
+                                summaryStat(count(in: "fridge"), "Fridge", "refrigerator.fill", Theme.copper)
+                                summaryStat(count(in: "freezer"), "Freezer", "snowflake", Theme.teal)
+                                summaryStat(count(in: "pantry"), "Pantry", "cabinet.fill", Theme.teal)
                             }
                             if expiringSoonCount > 0 {
                                 Divider()
@@ -167,9 +167,9 @@ struct FridgeView: View {
 
     private func tint(for position: String?) -> Color {
         switch position {
-        case "freezer": return Theme.slate
-        case "pantry": return Theme.slate
-        default: return Theme.pearl
+        case "freezer": return Theme.teal
+        case "pantry": return Theme.teal
+        default: return Theme.copper
         }
     }
 
@@ -230,7 +230,7 @@ struct FridgeView: View {
     }
 
     private func expiryColor(_ days: Int) -> Color {
-        days < 0 ? Theme.danger : days <= 1 ? Theme.danger : days <= 3 ? Theme.slate : Theme.pearl
+        days < 0 ? Theme.danger : days <= 1 ? Theme.danger : days <= 3 ? Theme.warning : Theme.success
     }
 
     private func expiryDateLabel(_ iso: String) -> String {
