@@ -13,7 +13,10 @@ struct ShoppingView: View {
                 } else {
                     List {
                         ForEach(items) { item in
-                            Text(item.name)
+                            HStack(spacing: 12) {
+                                Circle().fill(Theme.blue.opacity(0.55)).frame(width: 7, height: 7)
+                                Text(item.name)
+                            }
                         }
                         .onDelete(perform: delete)
                     }
@@ -39,12 +42,13 @@ struct ShoppingView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
-                            .background(Color.blue, in: Circle())
+                            .background(Theme.blue, in: Circle())
                     }
                     .disabled(newItem.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 .padding(.horizontal, 16).padding(.vertical, 8)
-                .glassEffect(.regular)
+                .background(Color(.secondarySystemGroupedBackground))
+                .overlay(alignment: .top) { Divider() }
             }
             .task { await load() }
             .refreshable { await load() }
@@ -303,7 +307,7 @@ struct RecipeDetailSheet: View {
                 .padding(16)
                 .padding(.bottom, 24)
             }
-            .background(Palette.screenGradient.ignoresSafeArea())
+            .matteBackground()
             .navigationTitle(name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -351,7 +355,7 @@ struct RecipeDetailSheet: View {
 
     private var heroPlaceholder: some View {
         ZStack {
-            LinearGradient(colors: [.orange, .pink], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [Theme.amber, Theme.coral], startPoint: .topLeading, endPoint: .bottomTrailing)
             Image(systemName: "fork.knife").font(.system(size: 46)).foregroundStyle(.white.opacity(0.9))
         }
     }
@@ -359,11 +363,11 @@ struct RecipeDetailSheet: View {
     // ── Badges ──────────────────────────────────────────────────────────────
     private var badgeItems: [(String, String, Color)] {
         var items: [(String, String, Color)] = []
-        if let category, !category.isEmpty { items.append((category, "tag.fill", .orange)) }
-        if let area, !area.isEmpty { items.append((area, "globe", .blue)) }
+        if let category, !category.isEmpty { items.append((category, "tag.fill", Theme.amber)) }
+        if let area, !area.isEmpty { items.append((area, "globe", Theme.sky)) }
         if let source, !source.isEmpty {
             let label = source == "mealdb" ? "TheMealDB" : (source == "url" ? "Imported" : source)
-            items.append((label, "link", .purple))
+            items.append((label, "link", Theme.purple))
         }
         return items
     }
@@ -396,7 +400,7 @@ struct RecipeDetailSheet: View {
         VStack(spacing: 0) {
             ForEach(Array(ingredients.enumerated()), id: \.offset) { idx, ing in
                 HStack(alignment: .top, spacing: 12) {
-                    Circle().fill(Color.accentColor).frame(width: 7, height: 7).padding(.top, 7)
+                    Circle().fill(Theme.coral).frame(width: 7, height: 7).padding(.top, 7)
                     Text(ing).font(.subheadline).lineSpacing(2)
                     Spacer(minLength: 0)
                 }
@@ -414,7 +418,7 @@ struct RecipeDetailSheet: View {
                         .font(.subheadline.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 28, height: 28)
-                        .background(Color.accentColor, in: Circle())
+                        .background(Theme.coral, in: Circle())
                     Text(step).font(.subheadline).lineSpacing(3)
                     Spacer(minLength: 0)
                 }

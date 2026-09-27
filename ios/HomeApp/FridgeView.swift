@@ -24,9 +24,9 @@ struct FridgeView: View {
                     List {
                         Section {
                             HStack(spacing: 0) {
-                                summaryStat(count(in: "fridge"), "Fridge", "refrigerator.fill", .cyan)
-                                summaryStat(count(in: "freezer"), "Freezer", "snowflake", .blue)
-                                summaryStat(count(in: "pantry"), "Pantry", "cabinet.fill", .orange)
+                                summaryStat(count(in: "fridge"), "Fridge", "refrigerator.fill", Theme.cyan)
+                                summaryStat(count(in: "freezer"), "Freezer", "snowflake", Theme.blue)
+                                summaryStat(count(in: "pantry"), "Pantry", "cabinet.fill", Theme.amber)
                             }
                             if expiringSoonCount > 0 {
                                 Divider()
@@ -144,7 +144,11 @@ struct FridgeView: View {
     }
 
     private func tint(for position: String?) -> Color {
-        Palette.accent
+        switch position {
+        case "freezer": return Theme.blue
+        case "pantry": return Theme.amber
+        default: return Theme.cyan
+        }
     }
 
     private func subtitle(_ i: FridgeItem) -> String {
@@ -173,9 +177,15 @@ struct FridgeView: View {
     }
 
     private func summaryStat(_ count: Int, _ label: String, _ symbol: String, _ tint: Color) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: symbol).foregroundStyle(Palette.accent).font(.subheadline)
-            Text("\(count)").font(.system(size: 26, weight: .bold, design: .rounded)).contentTransition(.numericText())
+        VStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(tint, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Text("\(count)")
+                .font(.system(size: 26, weight: .bold, design: .rounded))
+                .contentTransition(.numericText())
             Text(label).font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -198,7 +208,7 @@ struct FridgeView: View {
     }
 
     private func expiryColor(_ days: Int) -> Color {
-        days < 0 ? .red : days <= 1 ? .red : days <= 3 ? .orange : .green
+        days < 0 ? Theme.red : days <= 1 ? Theme.red : days <= 3 ? Theme.amber : Theme.green
     }
 
     private func expiryDateLabel(_ iso: String) -> String {

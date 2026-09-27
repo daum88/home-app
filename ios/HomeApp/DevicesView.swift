@@ -15,30 +15,30 @@ struct DevicesView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 14) {
                     if let errorMessage = state.errorMessage {
                         HStack(spacing: 8) {
-                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.coral)
                             Text(errorMessage).font(.footnote)
                         }
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.orange.opacity(0.12),
+                        .background(Theme.coral.opacity(0.12),
                                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
-                    weatherCard.onTapGesture { showWeather = true }
-                    washerCard.onTapGesture { showWasher = true }
-                    fridgeCard.onTapGesture { showFridge = true }
-                    electricityCard
-                    mediaCard
-                    ventCard
-                    torrentCard
+                    weatherCard.onTapGesture { showWeather = true }.entrance(0)
+                    washerCard.onTapGesture { showWasher = true }.entrance(1)
+                    fridgeCard.onTapGesture { showFridge = true }.entrance(2)
+                    electricityCard.entrance(3)
+                    mediaCard.entrance(4)
+                    ventCard.entrance(5)
+                    torrentCard.entrance(6)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
-            .background(Palette.screenGradient.ignoresSafeArea())
+            .matteBackground()
             .navigationTitle("Devices")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -72,15 +72,15 @@ struct DevicesView: View {
     }
 
     private var washerStateColor: Color {
-        if washerRunning { return .green }
-        if state.washer?.machineState == "ready" { return .blue }
+        if washerRunning { return Theme.green }
+        if state.washer?.machineState == "ready" { return Theme.blue }
         return .secondary
     }
 
     private var washerCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "washer", colors: [.blue, .indigo])
+                IconTile(systemName: "washer", colors: [Theme.blue, Theme.indigo])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Washer").font(.headline)
                     if state.washer == nil && !state.loaded {
@@ -134,7 +134,7 @@ struct DevicesView: View {
     private var fridgeCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "refrigerator", colors: [.cyan, .blue])
+                IconTile(systemName: "refrigerator", colors: [Theme.cyan, Theme.blue])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Fridge").font(.headline)
                     if state.fridge == nil && !state.loaded {
@@ -147,8 +147,8 @@ struct DevicesView: View {
                 if let f = state.fridge, f.fridgeDoorOpen == true { PillStatus(text: "Door open", color: .red) }
             }
             HStack(spacing: 12) {
-                StatTile(label: "Fridge", value: temp(state.fridge?.fridgeTemp), symbol: "thermometer.medium", tint: .cyan)
-                StatTile(label: "Freezer", value: temp(state.fridge?.freezerTemp), symbol: "snowflake", tint: .blue)
+                StatTile(label: "Fridge", value: temp(state.fridge?.fridgeTemp), symbol: "thermometer.medium", tint: Theme.cyan)
+                StatTile(label: "Freezer", value: temp(state.fridge?.freezerTemp), symbol: "snowflake", tint: Theme.blue)
             }
             if let f = state.fridge, f.fridgeSetTemp != nil || f.freezerSetTemp != nil {
                 HStack(spacing: 12) {
@@ -259,7 +259,7 @@ struct DevicesView: View {
         Card {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
-                    IconTile(systemName: "bolt.fill", colors: [.yellow, .orange])
+                    IconTile(systemName: "bolt.fill", colors: [Theme.yellow, Theme.amber])
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Electricity").font(.headline).tracking(-0.01)
                         Text("Nord Pool · Estonia").font(.caption).foregroundStyle(.secondary)
@@ -376,10 +376,10 @@ struct DevicesView: View {
     }
 
     private func priceColor(_ p: Double) -> Color {
-        if p < 6 { return .green }
-        if p < 12 { return .yellow }
-        if p < 20 { return .orange }
-        return .red
+        if p < 6 { return Theme.green }
+        if p < 12 { return Theme.yellow }
+        if p < 20 { return Theme.amber }
+        return Theme.red
     }
 
     private func hourLabel(_ hours: [ElectricityHour], _ index: Int) -> String {
@@ -390,7 +390,7 @@ struct DevicesView: View {
     private var mediaCard: some View {
         Card {
             HStack(spacing: 12) {
-                IconTile(systemName: "film.stack.fill", colors: [.indigo, .purple])
+                IconTile(systemName: "film.stack.fill", colors: [Theme.indigo, Theme.purple])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Media library").font(.headline)
                     Text("Jellyfin").font(.subheadline).foregroundStyle(.secondary)
@@ -406,7 +406,7 @@ struct DevicesView: View {
     private var ventCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "fan", colors: [.orange, .pink])
+                IconTile(systemName: "fan", colors: [Theme.amber, Theme.coral])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Ventilation").font(.headline)
                     if state.vent == nil && !state.loaded {
@@ -425,8 +425,8 @@ struct DevicesView: View {
                 .tint(.orange)
             }
             HStack(spacing: 12) {
-                StatTile(label: "Airflow", value: state.vent?.airflow ?? "—", symbol: "wind", tint: .orange)
-                StatTile(label: "CO₂", value: state.vent.map { "\($0.co2 ?? 0) ppm" } ?? "—", symbol: "aqi.medium", tint: .pink)
+                StatTile(label: "Airflow", value: state.vent?.airflow ?? "—", symbol: "wind", tint: Theme.amber)
+                StatTile(label: "CO₂", value: state.vent.map { "\($0.co2 ?? 0) ppm" } ?? "—", symbol: "aqi.medium", tint: Theme.coral)
             }
             if let v = state.vent {
                 HStack(spacing: 12) {
@@ -443,7 +443,7 @@ struct DevicesView: View {
     private var torrentCard: some View {
         Card {
             HStack(alignment: .top, spacing: 12) {
-                IconTile(systemName: "arrow.down.circle.fill", colors: [.purple, .blue])
+                IconTile(systemName: "arrow.down.circle.fill", colors: [Theme.purple, Theme.blue])
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Downloads").font(.headline)
                     Text(state.torrents.isEmpty ? "No active torrents" : "\(state.torrents.count) active")

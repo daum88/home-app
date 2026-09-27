@@ -187,6 +187,7 @@ struct AssistantView: View {
                         }
                         .buttonStyle(.bordered)
                         .buttonBorderShape(.capsule)
+                        .tint(Theme.blue)
                     }
                 }
                 .padding(.horizontal, 20)
@@ -217,9 +218,9 @@ struct AssistantView: View {
             Button { model.toggleMic() } label: {
                 Image(systemName: model.listening ? "mic.fill" : "mic")
                     .font(.system(size: 20))
-                    .foregroundStyle(model.listening ? .white : Palette.accent)
+                    .foregroundStyle(model.listening ? .white : Theme.blue)
                     .frame(width: 44, height: 44)
-                    .background(model.listening ? Color.red : Palette.accent.opacity(0.12), in: Circle())
+                    .background(model.listening ? Theme.red : Theme.blue.opacity(0.12), in: Circle())
             }
             TextField("Ask anything…", text: $model.input)
                 .padding(.horizontal, 14).padding(.vertical, 10)
@@ -232,10 +233,12 @@ struct AssistantView: View {
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.circle)
+            .tint(Theme.blue)
             .disabled(model.busy)
         }
         .padding(.horizontal, 16).padding(.vertical, 8)
-        .glassEffect(.regular)
+        .background(Color(.secondarySystemGroupedBackground))
+        .overlay(alignment: .top) { Divider() }
     }
 }
 
@@ -245,10 +248,18 @@ struct Bubble: View {
         HStack {
             if m.role == "user" { Spacer(minLength: 48) }
             Text(m.thinking ? "…" : m.content)
-                .padding(.horizontal, 14).padding(.vertical, 10)
-                .background(m.role == "user" ? Color.blue : Color(.secondarySystemBackground),
-                            in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .padding(.horizontal, 15).padding(.vertical, 11)
                 .foregroundStyle(m.role == "user" ? .white : .primary)
+                .background {
+                    if m.role == "user" {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(LinearGradient(colors: [Theme.blue, Theme.indigo],
+                                                 startPoint: .topLeading, endPoint: .bottomTrailing))
+                    } else {
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .fill(Color(.secondarySystemGroupedBackground))
+                    }
+                }
             if m.role != "user" { Spacer(minLength: 48) }
         }
     }
