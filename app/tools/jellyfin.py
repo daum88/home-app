@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from urllib.parse import quote
 
 from .. import config
 from .base import ToolError
@@ -483,7 +484,7 @@ def _scan_local_movies() -> dict[str, Any]:
                 "year": year,
                 "path": full,
                 "size_mb": round(size / 1_000_000) or None,
-                "image": None,
+                "image": f"/api/tmdb/poster?title={quote(name)}&year={year}" if name else None,
                 "video_codec": None,
                 "bit_depth": None,
                 "resolution": None,
@@ -511,7 +512,8 @@ def _scan_local_series() -> dict[str, Any]:
         name = folder.name[:match.start()].strip() if match else folder.name
         items.append({
             "id": str(folder), "name": name, "type": "Series", "year": year,
-            "path": str(folder), "image": None,
+            "path": str(folder),
+            "image": f"/api/tmdb/poster?title={quote(name)}&year={year}&kind=tv" if name else None,
         })
     items.sort(key=lambda item: item["name"].lower())
     return {"type": "Series", "items": items}

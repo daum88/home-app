@@ -30,6 +30,7 @@ from pydantic import BaseModel, Field
 from . import config, db, llm, speech
 from . import letterboxd as letterboxd_sync
 from . import smartthings_oauth
+from . import tmdb
 from .media_subtitles import resolve_media_path, router as subtitles_router
 from .prompts import SYSTEM_PROMPT
 from .tools import get_schemas, receipts as receipts_tool
@@ -182,6 +183,17 @@ async def health() -> dict[str, Any]:
 
 class OAuthExchangeRequest(BaseModel):
     code: str
+
+
+@app.get("/api/tmdb/poster")
+async def tmdb_poster(title: str = "", year: int = 0, kind: str = "movie") -> Response:
+    """Proxy a TMDB poster image (cached on the drive) so posters work offline."""
+    if not title:
+        raise HTTPException(status_code=400, detail="missing title")
+    data = await tmdb.poster_bytes(kind, title, year or None)
+    if data is None:
+        raise HTTPException(status_code=404, detail="no poster")
+    return Response(content=data, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/oauth/authorize")

@@ -133,6 +133,11 @@ RADARR_QUALITY_PROFILE_ID = int(os.getenv("RADARR_QUALITY_PROFILE_ID", "4"))  # 
 LETTERBOXD_USER = os.getenv("LETTERBOXD_USER", "daum13").strip()
 
 # ---------------------------------------------------------------------------
+# TheMovieDB (TMDB) — poster art + metadata when Jellyfin/Mac is offline
+# ---------------------------------------------------------------------------
+TMDB_API_KEY = os.getenv("TMDB_API_KEY", "").strip()
+
+# ---------------------------------------------------------------------------
 # OpenSubtitles.com (auto-download subtitles for movies without .srt)
 # ---------------------------------------------------------------------------
 OPENSUBTITLES_API_KEY = os.getenv("OPENSUBTITLES_API_KEY", "").strip()
