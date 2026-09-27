@@ -384,6 +384,31 @@ def _audio_codec(path: str) -> str:
     return codec
 
 
+_UNSUPPORTED_VIDEO = {"mpeg4", "msmpeg4v3", "msmpeg4v2", "xvid", "divx", "div3",
+                      "flv1", "wmv1", "wmv2", "wmv3", "vc1", "mpeg2video",
+                      "vp8", "vp9", "rv40", "mjpeg"}
+_video_codec_cache: dict[str, tuple[float, str]] = {}
+
+
+def _video_codec(path: str) -> str:
+    """Return the primary video codec of a file (cached for an hour)."""
+    now = time.time()
+    if path in _video_codec_cache and now - _video_codec_cache[path][0] < 3600:
+        return _video_codec_cache[path][1]
+    codec = ""
+    try:
+        out = subprocess.run(
+            ["/usr/lib/jellyfin-ffmpeg/ffprobe", "-v", "error", "-select_streams", "v:0",
+             "-show_entries", "stream=codec_name", "-of", "csv=p=0", path],
+            capture_output=True, text=True, timeout=12,
+        )
+        codec = out.stdout.strip().lower()
+    except Exception:  # noqa: BLE001
+        codec = ""
+    _video_codec_cache[path] = (now, codec)
+    return codec
+
+
 def _transcode_generator(path: str):
     """Stream the file with audio transcoded to AAC (video copied) — used for offline downloads."""
     cmd = [
@@ -412,20 +437,21 @@ def _transcode_generator(path: str):
 _DOWNLOAD_DIR = os.path.join(config.FS_ROOT, ".downloads")
 
 
-def _download_mp4(path: str) -> str:
-    """Remux/transcode a file to a complete MP4 (video copied, audio → AAC),
+def _download_mp4(path: str, transcode_video: bool = False) -> str:
+    """Remux/transcode a file to a complete MP4 (video copied or H.264, audio → AAC),
     cached by source path + mtime + size, so downloads have a known size and
     the phone can show progress / download in the background."""
     os.makedirs(_DOWNLOAD_DIR, exist_ok=True)
     st = os.stat(path)
-    key = hashlib.sha1(f"{path}:{st.st_mtime_ns}:{st.st_size}".encode()).hexdigest()[:16]
+    key = hashlib.sha1(f"{path}:{st.st_mtime_ns}:{st.st_size}:{int(transcode_video)}".encode()).hexdigest()[:16]
     out = os.path.join(_DOWNLOAD_DIR, f"{key}.mp4")
     if os.path.isfile(out) and os.path.getsize(out) > 0:
         return out
+    vcodec = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23"] if transcode_video else ["-c:v", "copy"]
     cmd = [
         "/usr/lib/jellyfin-ffmpeg/ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
         "-i", path,
-        "-map", "0:v:0", "-c:v", "copy",
+        "-map", "0:v:0", *vcodec,
         "-map", "0:a:0", "-c:a", "aac", "-b:a", "192k",
         "-movflags", "+faststart",
         "-f", "mp4", out,
@@ -468,8 +494,8 @@ async def _hls_shutdown() -> None:
         _hls_sessions.clear()
 
 
-async def _hls_start(path: str) -> dict[str, Any]:
-    """Start (or reuse) an ffmpeg HLS remux for a file. Returns its session."""
+async def _hls_start(path: str, transcode_video: bool = False) -> dict[str, Any]:
+    """Start (or reuse) an ffmpeg HLS remux/transcode for a file. Returns its session."""
     async with _hls_lock:
         now = time.time()
         if path in _hls_sessions:
@@ -484,10 +510,11 @@ async def _hls_start(path: str) -> dict[str, Any]:
         d = os.path.join(_HLS_DIR, token)
         await asyncio.to_thread(os.makedirs, d, exist_ok=True)
         await asyncio.to_thread(Path(d, "session.marker").touch)
+        vcodec = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23"] if transcode_video else ["-c:v", "copy"]
         cmd = [
             "/usr/lib/jellyfin-ffmpeg/ffmpeg", "-hide_banner", "-loglevel", "error",
             "-i", path,
-            "-map", "0:v:0", "-c:v", "copy",
+            "-map", "0:v:0", *vcodec,
             "-map", "0:a:0", "-c:a", "aac", "-b:a", "192k",
             "-hls_time", "6", "-hls_list_size", "0",
             "-hls_segment_filename", os.path.join(d, "seg%05d.ts"),
@@ -503,9 +530,9 @@ async def _hls_start(path: str) -> dict[str, Any]:
         return sess
 
 
-async def _hls_playlist(request: Request, path: str) -> Response:
+async def _hls_playlist(request: Request, path: str, transcode_video: bool = False) -> Response:
     """Serve the growing HLS playlist with segment URLs rewritten to absolute."""
-    sess = await _hls_start(path)
+    sess = await _hls_start(path, transcode_video)
     playlist = os.path.join(sess["dir"], "index.m3u8")
     deadline = time.time() + 15
     while time.time() < deadline:
@@ -589,20 +616,22 @@ async def media_stream(request: Request, path: str = "", download: int = 0) -> R
         raise HTTPException(status_code=404, detail="file not found on disk")
 
     audio = await asyncio.to_thread(_audio_codec, local)
+    video = await asyncio.to_thread(_video_codec, local)
+    transcode_video = video in _UNSUPPORTED_VIDEO
 
-    # Offline save: serve the raw file when the iPhone can play its audio
+    # Offline save: serve the raw file when the iPhone can play its codecs
     # (instant, with a known size for progress + background), otherwise remux
     # to a complete MP4 file.
     if download:
-        if audio in _UNSUPPORTED_AUDIO:
-            out = await asyncio.to_thread(_download_mp4, local)
+        if transcode_video or audio in _UNSUPPORTED_AUDIO:
+            out = await asyncio.to_thread(_download_mp4, local, transcode_video)
             return FileResponse(out, media_type="video/mp4",
                                 filename=os.path.splitext(os.path.basename(local))[0] + ".mp4")
         # fall through to the raw-file serving below (Content-Length + Range)
 
-    # iPhones can't decode DTS/TrueHD etc. — remux to HLS (AAC audio, seekable).
-    if audio in _UNSUPPORTED_AUDIO:
-        return await _hls_playlist(request, local)
+    # iPhones can't decode XviD/DTS/TrueHD etc. — remux/transcode to HLS.
+    if transcode_video or audio in _UNSUPPORTED_AUDIO:
+        return await _hls_playlist(request, local, transcode_video)
     size = os.path.getsize(local)
     filename = os.path.basename(local)
     content_type = mimetypes.guess_type(local)[0] or "application/octet-stream"
