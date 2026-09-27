@@ -6,6 +6,11 @@ the whole SwiftUI app. Builds on top of the other agent's functional work
 
 ## Done
 
+- **Origin-aware morphing transitions** (iOS 18 zoom): movie poster → detail,
+  fridge row → item detail, and washer tile → washer detail now expand from the
+  source they were tapped, using `matchedTransitionSource` +
+  `.navigationTransition(.zoom)`. The detail screens were converted from sheets
+  to `NavigationStack` pushes for a shared transition namespace.
 - **Palette — paper / ink / light.** `Theme` now uses warm paper canvas
   (`#F5F2EB`), raised surface (`#FCFAF5`), charcoal-green ink (`#182522`),
   deep teal accent (`#276B67`), copper highlight (`#BA8550`), plus fixed
@@ -34,10 +39,9 @@ the whole SwiftUI app. Builds on top of the other agent's functional work
 
 ## Deferred (needs device/user input)
 
-- **Origin-aware morphing transitions** (`matchedGeometryEffect` /
-  `matchedTransitionSource`): the detail screens are still sheets, which can't
-  share a transition namespace. Converting them to `NavigationStack` pushes is
-  the next refactor; do it after device validation.
+- **Remaining morphs** (movie detail → player, recipe cover → Cook Mode,
+  assistant shortcut → conversation): the full-screen and cross-navigation
+  handoffs need further work; the three core push morphs are in.
 - **Trustworthy Live Activity** (APNs push updates): requires the APNs `.p8`
   key + backend push; the current app-side `pushType: nil` activity is
   unchanged and only refreshes in the foreground.

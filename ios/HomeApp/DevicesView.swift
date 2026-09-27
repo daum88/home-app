@@ -12,6 +12,7 @@ struct DevicesView: View {
     @State private var showMedia = false
     @State private var showVentSheet = false
     @State private var showSettings = false
+    @Namespace private var ns
 
     var body: some View {
         NavigationStack {
@@ -29,7 +30,9 @@ struct DevicesView: View {
                                     in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     weatherCard.onTapGesture { showWeather = true }.entrance(1)
-                    washerCard.onTapGesture { showWasher = true }.entrance(2)
+                    washerCard.onTapGesture { showWasher = true }
+                        .matchedTransitionSource(id: "washer", in: ns)
+                        .entrance(2)
                     fridgeCard.onTapGesture { showFridge = true }.entrance(3)
                     electricityCard.entrance(4)
                     mediaCard.entrance(5)
@@ -57,7 +60,14 @@ struct DevicesView: View {
                 Button("High") { Task { await state.setVent("high") } }
             }
             .sheet(isPresented: $showWeather) { WeatherSheet() }
-            .sheet(isPresented: $showWasher) { if let washer = state.washer { WasherSheet(washer: washer) } }
+            .navigationDestination(isPresented: $showWasher) {
+                if let washer = state.washer {
+                    WasherSheet(washer: washer)
+                        .navigationTransition(.zoom(sourceID: "washer", in: ns))
+                } else {
+                    ProgressView()
+                }
+            }
             .sheet(isPresented: $showFridge) { if let fridge = state.fridge { FridgeSheet(fridge: fridge) } }
             .sheet(isPresented: $showMedia) { MediaView() }
             .sheet(isPresented: $showSettings) { SettingsView() }
@@ -545,9 +555,8 @@ struct WasherSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section("State") {
+        List {
+            Section("State") {
                     LabeledContent("Status", value: washer.machineState?.capitalized ?? "—")
                     LabeledContent("Job", value: washer.jobState ?? "—")
                     if let p = washer.progress { LabeledContent("Progress", value: "\(Int(p))%") }
@@ -575,8 +584,6 @@ struct WasherSheet: View {
             }
             .navigationTitle("Washer")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
-        }
     }
 }
 

@@ -15,6 +15,7 @@ struct FridgeView: View {
     @State private var showSpending = false
     @State private var searchText = ""
     @State private var selectedItem: FridgeItem?
+    @Namespace private var ns
 
     var body: some View {
         NavigationStack {
@@ -52,6 +53,7 @@ struct FridgeView: View {
                                 ForEach(group.items) { item in
                                     row(item)
                                         .contentShape(Rectangle())
+                                        .matchedTransitionSource(id: item.id, in: ns)
                                         .onTapGesture { selectedItem = item }
                                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                             Button("Delete", role: .destructive) { remove(item) }
@@ -90,7 +92,10 @@ struct FridgeView: View {
             }
             .searchable(text: $searchText, prompt: "Search fridge")
             .safeAreaInset(edge: .bottom) { undoBanner }
-            .sheet(item: $selectedItem) { FridgeItemDetailSheet(item: $0) }
+            .navigationDestination(item: $selectedItem) { item in
+                FridgeItemDetailSheet(item: item)
+                    .navigationTransition(.zoom(sourceID: item.id, in: ns))
+            }
             .task { await load() }
             .refreshable { await load() }
             .sheet(isPresented: $showAdd) { AddItemSheet { await load() } }
@@ -525,8 +530,7 @@ struct FridgeItemDetailSheet: View {
     @State private var price: PriceTrend?
 
     var body: some View {
-        NavigationStack {
-            List {
+        List {
                 Section("Item") {
                     LabeledContent("Name", value: item.name)
                     LabeledContent("Where", value: item.position ?? "fridge")
@@ -558,10 +562,8 @@ struct FridgeItemDetailSheet: View {
             }
             .navigationTitle(item.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
             .task {
                 price = try? await API.run("price_trend", args: ["name": item.name])
             }
-        }
     }
 }

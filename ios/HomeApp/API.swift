@@ -20,7 +20,7 @@ struct ToolEnvelope<T: Decodable>: Decodable {
 }
 
 // ── Device models ────────────────────────────────────────────────────────────
-struct WasherStatus: Decodable {
+struct WasherStatus: Decodable, Hashable {
     var machineState: String?
     var jobState: String?
     var progress: Double?
@@ -35,7 +35,7 @@ struct WasherStatus: Decodable {
     var remoteControlEnabled: String?
     var scheduledJobs: [ScheduledJob]?
 
-    struct ScheduledJob: Decodable {
+    struct ScheduledJob: Decodable, Hashable {
         var jobName: String?
         var timeInMin: Int?
     }
@@ -95,7 +95,7 @@ struct Torrent: Decodable, Identifiable {
 struct TorrentList: Decodable { var torrents: [Torrent] }
 
 // ── Fridge inventory ─────────────────────────────────────────────────────────
-struct FridgeItem: Decodable, Identifiable {
+struct FridgeItem: Decodable, Identifiable, Hashable {
     var id: Int
     var name: String
     var barcode: String?
@@ -139,7 +139,7 @@ struct WeatherNow: Decodable {
     var tempMin: Double?
 }
 
-struct JellyfinItem: Decodable, Identifiable {
+struct JellyfinItem: Decodable, Identifiable, Hashable {
     var id: String
     var name: String
     var type: String?

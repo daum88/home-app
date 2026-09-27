@@ -202,6 +202,7 @@ struct MediaLibraryView: View {
     @State private var selectedSeries: JellyfinItem?
     @State private var searchText = ""
     @State private var playbackByPath: [String: PlaybackRecord] = [:]
+    @Namespace private var ns
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -248,6 +249,7 @@ struct MediaLibraryView: View {
                                            progress: rec.map { $0.duration > 0 ? min($0.position / $0.duration, 1) : 0 } ?? 0)
                             }
                             .buttonStyle(PressableButtonStyle())
+                            .matchedTransitionSource(id: item.id, in: ns)
                             .opacity(items.count > 0 ? 1 : 0)
                             .animation(.easeOut(duration: 0.35).delay(Double(idx) * 0.03), value: items.count)
                             .contextMenu {
@@ -268,10 +270,11 @@ struct MediaLibraryView: View {
             }
         }
         .task { await load() }
-        .sheet(item: $selected) { item in
+        .navigationDestination(item: $selected) { item in
             MediaItemDetailSheet(item: item) {
                 items.removeAll { $0.id == item.id }
             }
+            .navigationTransition(.zoom(sourceID: item.id, in: ns))
         }
         .sheet(item: $selectedSeries) { series in
             SeriesEpisodesView(series: series)
@@ -327,9 +330,8 @@ struct MediaItemDetailSheet: View {
     @State private var downloadStatus: String?
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
                     // Poster hero
                     PosterImage(imagePath: item.image, cornerRadius: 18)
                         .frame(maxWidth: 230)
@@ -431,10 +433,6 @@ struct MediaItemDetailSheet: View {
             }
             .navigationTitle(item.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } }
-            }
-        }
         .task { await load() }
         .confirmationDialog("Delete \"\(item.name)\"?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete from drive", role: .destructive) { Task { await delete() } }
