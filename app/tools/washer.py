@@ -15,15 +15,16 @@ from typing import Any
 
 import httpx
 
-from .. import config
+from .. import config, smartthings_oauth
 from .base import ToolError
 
 BASE = config.SMARTTHINGS_API
 DEVICE = config.WASHER_DEVICE_ID
 
 
-def _headers() -> dict[str, str]:
-    return {"Authorization": f"Bearer {config.SMARTTHINGS_PAT}"}
+async def _headers() -> dict[str, str]:
+    token = await smartthings_oauth.get_access_token()
+    return {"Authorization": f"Bearer {token}"}
 
 
 def _cmd(
@@ -36,15 +37,15 @@ def _cmd(
 
 
 def _require_config() -> None:
-    if not config.SMARTTHINGS_PAT:
-        raise ToolError("the washer isn't configured — add SMARTTHINGS_PAT to .env")
+    if not (smartthings_oauth.configured() or config.SMARTTHINGS_PAT):
+        raise ToolError("the washer isn't configured — set up SmartThings OAuth or add SMARTTHINGS_PAT")
 
 
 async def _get(url: str) -> dict[str, Any]:
     _require_config()
     try:
         async with httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT) as client:
-            resp = await client.get(url, headers=_headers())
+            resp = await client.get(url, headers=await _headers())
     except httpx.HTTPError as err:
         raise ToolError(f"can't reach SmartThings ({err})") from err
     if resp.status_code in (401, 403):
@@ -59,7 +60,7 @@ async def _post_commands(commands: list[dict]) -> dict[str, Any]:
         async with httpx.AsyncClient(timeout=config.REQUEST_TIMEOUT) as client:
             resp = await client.post(
                 f"{BASE}/devices/{DEVICE}/commands",
-                headers=_headers(),
+                headers=await _headers(),
                 json={"commands": commands},
             )
     except httpx.HTTPError as err:

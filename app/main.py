@@ -23,12 +23,13 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
-from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import config, db, llm, speech
 from . import letterboxd as letterboxd_sync
+from . import smartthings_oauth
 from .media_subtitles import resolve_media_path, router as subtitles_router
 from .prompts import SYSTEM_PROMPT
 from .tools import get_schemas, receipts as receipts_tool
@@ -177,6 +178,30 @@ class LogRequest(BaseModel):
 @app.get("/api/health")
 async def health() -> dict[str, Any]:
     return {"ok": True}
+
+
+class OAuthExchangeRequest(BaseModel):
+    code: str
+
+
+@app.get("/oauth/authorize")
+async def oauth_authorize() -> Response:
+    """Redirect to SmartThings' authorize page (open this once in a browser)."""
+    if not smartthings_oauth.configured():
+        raise HTTPException(status_code=400, detail="SmartThings OAuth not configured (set SMARTTHINGS_CLIENT_ID and SMARTTHINGS_CLIENT_SECRET)")
+    return RedirectResponse(smartthings_oauth.authorize_url())
+
+
+@app.post("/oauth/exchange")
+async def oauth_exchange(req: OAuthExchangeRequest) -> dict[str, Any]:
+    """Exchange an authorization code for tokens and store them."""
+    if not req.code.strip():
+        raise HTTPException(status_code=400, detail="missing code")
+    try:
+        await smartthings_oauth.exchange_code(req.code.strip())
+    except Exception as err:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=f"token exchange failed: {err}") from err
+    return {"ok": True, "message": "SmartThings connected"}
 
 
 @app.post("/api/log")

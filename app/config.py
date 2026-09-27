@@ -44,6 +44,13 @@ def transmission_connection() -> tuple[str, int, str | None, str | None]:
 # ---------------------------------------------------------------------------
 SMARTTHINGS_API = "https://api.smartthings.com/v1"
 SMARTTHINGS_PAT = os.getenv("SMARTTHINGS_PAT", "").strip()
+# OAuth 2.0 (permanent auth — replaces the 24h PAT). Create a SmartThings Cloud
+# Connector at https://smartthings.developer.samsung.com/workspace/ to get these.
+SMARTTHINGS_CLIENT_ID = os.getenv("SMARTTHINGS_CLIENT_ID", "").strip()
+SMARTTHINGS_CLIENT_SECRET = os.getenv("SMARTTHINGS_CLIENT_SECRET", "").strip()
+SMARTTHINGS_REDIRECT_URI = os.getenv(
+    "SMARTTHINGS_REDIRECT_URI", "http://localhost:8080/callback"
+).strip()
 # Verified device id from RESEARCH.md.
 WASHER_DEVICE_ID = os.getenv(
     "WASHER_DEVICE_ID", "b6d6a88b-8f08-919d-e51d-7f4799882d38"
