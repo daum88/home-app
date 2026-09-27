@@ -155,7 +155,7 @@ struct JellyfinItem: Decodable, Identifiable, Hashable {
     var overview: String?
     var image: String?
     var path: String?
-    var sizeMB: Double?
+    var sizeMb: Double?
     var videoCodec: String?
     var bitDepth: Int?
     var resolution: String?
@@ -170,7 +170,7 @@ struct JellyfinEpisode: Decodable, Identifiable {
     var season: Int?
     var episode: Int?
     var path: String?
-    var sizeMB: Double?
+    var sizeMb: Double?
 }
 struct JellyfinEpisodeList: Decodable { var episodes: [JellyfinEpisode] }
 
@@ -191,14 +191,14 @@ struct JellyfinItemDetail: Decodable {
     var bitDepth: Int?
     var resolution: String?
     var hdr: Bool?
-    var sizeMB: Double?
+    var sizeMb: Double?
 }
 
 struct DiskUsage: Decodable {
     var root: String?
-    var totalGB: Double?
-    var usedGB: Double?
-    var freeGB: Double?
+    var totalGb: Double?
+    var usedGb: Double?
+    var freeGb: Double?
 }
 
 struct SavedRecipe: Decodable, Identifiable {

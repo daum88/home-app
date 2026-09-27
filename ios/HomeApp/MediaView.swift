@@ -463,7 +463,7 @@ struct MediaItemDetailSheet: View {
                         let badge = codecBadge(item)
                         HStack(spacing: 8) {
                             PillStatus(text: badge.label, color: badge.color)
-                            if let s = item.sizeMB, s > 0 { Text("\(Int(s)) MB").font(.caption).foregroundStyle(.secondary) }
+                            if let s = item.sizeMb, s > 0 { Text("\(Int(s)) MB").font(.caption).foregroundStyle(.secondary) }
                         }
                         if let p = item.path {
                             Text(p).font(.caption2).foregroundStyle(.secondary).lineLimit(2)
@@ -632,13 +632,13 @@ struct DownloadsView: View {
                         Section("Drive") {
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack {
-                                    Text("Free \(fmt(disk.freeGB ?? 0)) GB")
+                                    Text("Free \(fmt(disk.freeGb ?? 0)) GB")
                                         .font(.subheadline.weight(.semibold))
                                     Spacer()
-                                    Text("of \(fmt(disk.totalGB ?? 0)) GB")
+                                    Text("of \(fmt(disk.totalGb ?? 0)) GB")
                                         .font(.caption).foregroundStyle(.secondary)
                                 }
-                                let used = (disk.usedGB ?? 0) / max(disk.totalGB ?? 1, 1)
+                                let used = (disk.usedGb ?? 0) / max(disk.totalGb ?? 1, 1)
                                 ProgressPill(progress: used)
                             }
                             .padding(.vertical, 4)
