@@ -165,7 +165,7 @@ struct PosterCell: View {
 
             Text(item.name)
                 .font(.caption.weight(.semibold))
-                .lineLimit(2)
+                .lineLimit(2, reservesSpace: true)
                 .multilineTextAlignment(.leading)
 
             HStack(spacing: 5) {
@@ -202,6 +202,8 @@ struct MediaLibraryView: View {
     @State private var selectedSeries: JellyfinItem?
     @State private var searchText = ""
     @State private var playbackByPath: [String: PlaybackRecord] = [:]
+    @State private var didLoad = false
+    @State private var itemToDelete: JellyfinItem?
     @Namespace private var ns
 
     private let columns = [
@@ -254,7 +256,7 @@ struct MediaLibraryView: View {
                             .animation(.easeOut(duration: 0.35).delay(Double(idx) * 0.03), value: items.count)
                             .contextMenu {
                                 Button(role: .destructive) {
-                                    selected = item
+                                    itemToDelete = item
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
@@ -269,7 +271,11 @@ struct MediaLibraryView: View {
                 .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search \(mediaType == "series" ? "series" : "movies")")
             }
         }
-        .task { await load() }
+        .task {
+            guard !didLoad else { return }
+            didLoad = true
+            await load()
+        }
         .navigationDestination(item: $selected) { item in
             MediaItemDetailSheet(item: item) {
                 items.removeAll { $0.id == item.id }
@@ -278,6 +284,28 @@ struct MediaLibraryView: View {
         }
         .sheet(item: $selectedSeries) { series in
             SeriesEpisodesView(series: series)
+        }
+        .confirmationDialog("Delete \"\(itemToDelete?.name ?? "")\"?",
+                            isPresented: Binding(get: { itemToDelete != nil }, set: { if !$0 { itemToDelete = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete from drive", role: .destructive) {
+                if let item = itemToDelete { Task { await deleteItem(item) } }
+                itemToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { itemToDelete = nil }
+        } message: {
+            Text("This removes the files from the drive. It can't be undone.")
+        }
+    }
+
+    private func deleteItem(_ item: JellyfinItem) async {
+        do {
+            let _: JellyfinDeleteResult = try await API.run("jellyfin_delete", args: ["item_id": item.id])
+            withAnimation { items.removeAll { $0.id == item.id } }
+            Haptics.success()
+        } catch {
+            errorMessage = error.localizedDescription
+            Haptics.error()
         }
     }
 
