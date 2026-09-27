@@ -529,8 +529,7 @@ struct MediaItemDetailSheet: View {
             errorMessage = "No downloadable file path is available."
             return
         }
-        let base = (path as NSString).lastPathComponent
-        let filename = (base as NSString).deletingPathExtension + ".mp4"
+        let filename = (path as NSString).lastPathComponent
         downloadFilename = filename
         do {
             try await DownloadManager.shared.download(name: item.name, filename: filename, remoteURL: url)

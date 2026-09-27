@@ -8,10 +8,10 @@ struct ContinueWatchingRow: View {
     let onChanged: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Continue watching").font(.headline).padding(.horizontal, 16)
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Continue watching").font(.subheadline.weight(.semibold)).padding(.horizontal, 16)
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
+                HStack(spacing: 10) {
                     ForEach(items) { rec in
                         Button { Haptics.impact(); onPlay(rec) } label: {
                             ContinueCard(rec: rec)
@@ -50,9 +50,9 @@ struct ContinueCard: View {
     let rec: PlaybackRecord
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 4) {
             PosterImage(imagePath: rec.image)
-                .frame(width: 120)
+                .frame(width: 84)
                 .overlay(alignment: .bottom) {
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
@@ -63,11 +63,11 @@ struct ContinueCard: View {
                     }
                     .frame(height: 3)
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             Text(rec.title ?? rec.path)
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .lineLimit(1)
-                .frame(width: 120, alignment: .leading)
+                .frame(width: 84, alignment: .leading)
             Text(remainingLabel)
                 .font(.caption2)
                 .foregroundStyle(.secondary)

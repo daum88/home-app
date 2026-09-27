@@ -1,8 +1,9 @@
 import Foundation
 
 /// Tracks movies downloaded to the phone and handles saving/deleting them.
+/// Uses a background URLSession so downloads continue when the app is closed.
 @MainActor
-final class DownloadManager: ObservableObject {
+final class DownloadManager: NSObject, ObservableObject {
     static let shared = DownloadManager()
 
     struct DownloadedItem: Identifiable {
@@ -19,10 +20,18 @@ final class DownloadManager: ObservableObject {
     /// Download progress by destination filename (0…1).
     @Published var progress: [String: Double] = [:]
 
-    private let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        return URLSession(configuration: config)
-    }()
+    private var session: URLSession!
+    private var continuations: [String: CheckedContinuation<Void, Error>] = [:]
+    private var destinations: [Int: URL] = [:]
+    private var names: [Int: String] = [:]
+
+    override init() {
+        super.init()
+        let config = URLSessionConfiguration.background(withIdentifier: "com.mattiasdaum.home.downloads")
+        config.sessionSendsLaunchEvents = true
+        config.isDiscretionary = false
+        session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+    }
 
     private var dir: URL {
         let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
@@ -46,7 +55,7 @@ final class DownloadManager: ObservableObject {
         .sorted { $0.date > $1.date }
     }
 
-    /// Download a remote file into the local Downloads directory, reporting progress.
+    /// Download a remote file into the local Downloads directory.
     func download(name: String, filename: String, remoteURL: URL) async throws {
         let safeName = filename.isEmpty ? name : filename
         let dest = dir.appendingPathComponent(safeName)
@@ -54,18 +63,23 @@ final class DownloadManager: ObservableObject {
 
         activeDownloads.insert(safeName)
         progress[safeName] = 0
-        defer { activeDownloads.remove(safeName); progress[safeName] = nil; refresh() }
 
-        let delegate = DownloadProgressDelegate { [weak self] p in
-            Task { @MainActor in self?.progress[safeName] = p }
+        do {
+            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+                continuations[safeName] = cont
+                let task = session.downloadTask(with: URLRequest(url: remoteURL))
+                destinations[task.taskIdentifier] = dest
+                names[task.taskIdentifier] = safeName
+                task.resume()
+            }
+        } catch {
+            activeDownloads.remove(safeName)
+            progress[safeName] = nil
+            throw error
         }
-        let (tmp, response) = try await session.download(for: URLRequest(url: remoteURL), delegate: delegate)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            try? FileManager.default.removeItem(at: tmp)
-            throw APIError.server("Download failed: server returned an error")
-        }
-        try? FileManager.default.removeItem(at: dest)
-        try FileManager.default.moveItem(at: tmp, to: dest)
+        activeDownloads.remove(safeName)
+        progress[safeName] = nil
+        refresh()
     }
 
     func delete(_ item: DownloadedItem) {
@@ -74,23 +88,43 @@ final class DownloadManager: ObservableObject {
     }
 }
 
-/// Reports download progress back to the manager.
-final class DownloadProgressDelegate: NSObject, URLSessionDownloadDelegate {
-    private let onProgress: (Double) -> Void
-
-    init(onProgress: @escaping (Double) -> Void) {
-        self.onProgress = onProgress
-    }
-
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
-                    totalBytesExpectedToWrite: Int64) {
+extension DownloadManager: URLSessionDownloadDelegate {
+    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                                didWriteData bytesWritten: Int64, totalBytesWritten: Int64,
+                                totalBytesExpectedToWrite: Int64) {
         guard totalBytesExpectedToWrite > 0 else { return }
-        onProgress(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+        let fraction = Double(totalBytesWritten) / Double(totalBytesExpectedToWrite)
+        Task { @MainActor [weak self] in
+            if let name = self?.names[downloadTask.taskIdentifier] {
+                self?.progress[name] = fraction
+            }
+        }
     }
 
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
-                    didFinishDownloadingTo location: URL) {
-        // The async `download(for:delegate:)` returns the final URL itself.
+    nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
+                                didFinishDownloadingTo location: URL) {
+        Task { @MainActor [weak self] in
+            guard let self, let dest = self.destinations[downloadTask.taskIdentifier] else { return }
+            try? FileManager.default.removeItem(at: dest)
+            try? FileManager.default.moveItem(at: location, to: dest)
+        }
     }
+
+    nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        Task { @MainActor [weak self] in
+            guard let self, let name = self.names[task.taskIdentifier] else { return }
+            if let cont = self.continuations[name] {
+                self.continuations[name] = nil
+                if let error {
+                    cont.resume(throwing: error)
+                } else {
+                    cont.resume()
+                }
+            }
+            self.names[task.taskIdentifier] = nil
+            self.destinations[task.taskIdentifier] = nil
+        }
+    }
+
+    nonisolated func urlSessionDidFinishEvents(forBackgroundURLSession session: URLSession) {}
 }

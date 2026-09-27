@@ -13,6 +13,7 @@ import logging
 import mimetypes
 import os
 import re
+import hashlib
 import shutil
 import subprocess
 import time
@@ -383,6 +384,31 @@ def _transcode_generator(path: str):
         proc.terminate()
 
 
+_DOWNLOAD_DIR = os.path.join(config.FS_ROOT, ".downloads")
+
+
+def _download_mp4(path: str) -> str:
+    """Remux/transcode a file to a complete MP4 (video copied, audio → AAC),
+    cached by source path + mtime + size, so downloads have a known size and
+    the phone can show progress / download in the background."""
+    os.makedirs(_DOWNLOAD_DIR, exist_ok=True)
+    st = os.stat(path)
+    key = hashlib.sha1(f"{path}:{st.st_mtime_ns}:{st.st_size}".encode()).hexdigest()[:16]
+    out = os.path.join(_DOWNLOAD_DIR, f"{key}.mp4")
+    if os.path.isfile(out) and os.path.getsize(out) > 0:
+        return out
+    cmd = [
+        "/usr/lib/jellyfin-ffmpeg/ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
+        "-i", path,
+        "-map", "0:v:0", "-c:v", "copy",
+        "-map", "0:a:0", "-c:a", "aac", "-b:a", "192k",
+        "-movflags", "+faststart",
+        "-f", "mp4", out,
+    ]
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return out
+
+
 _HLS_DIR = os.path.join(config.FS_ROOT, ".hls")
 _hls_sessions: dict[str, dict[str, Any]] = {}
 _hls_lock = asyncio.Lock()
@@ -494,7 +520,7 @@ async def media_hls_segment(token: str, filename: str) -> Response:
 
 
 async def _hls_cleanup() -> None:
-    """Reap idle HLS sessions so segments don't pile up on the drive."""
+    """Reap idle HLS sessions and old prepared-download files."""
     while True:
         await asyncio.sleep(60)
         now = time.time()
@@ -506,6 +532,12 @@ async def _hls_cleanup() -> None:
                 if (done and idle > 300) or idle > 1800:
                     await asyncio.to_thread(_hls_stop_session, sess)
                     _hls_sessions.pop(path, None)
+        if os.path.isdir(_DOWNLOAD_DIR):
+            for f in os.listdir(_DOWNLOAD_DIR):
+                fp = os.path.join(_DOWNLOAD_DIR, f)
+                if os.path.isfile(fp) and now - os.path.getmtime(fp) > 48 * 3600:
+                    with suppress(OSError):
+                        os.remove(fp)
 
 
 def _parse_byte_range(header: str, size: int) -> tuple[int, int]:
@@ -531,18 +563,20 @@ async def media_stream(request: Request, path: str = "", download: int = 0) -> R
     if not os.path.isfile(local):
         raise HTTPException(status_code=404, detail="file not found on disk")
 
-    # Offline save: a complete MP4 (video copied, audio → AAC) so the iPhone
-    # can always play it, whatever the source container/audio codec is.
+    audio = await asyncio.to_thread(_audio_codec, local)
+
+    # Offline save: serve the raw file when the iPhone can play its audio
+    # (instant, with a known size for progress + background), otherwise remux
+    # to a complete MP4 file.
     if download:
-        return StreamingResponse(
-            _transcode_generator(local),
-            media_type="video/mp4",
-            headers={"Content-Disposition": f'inline; filename="{os.path.splitext(os.path.basename(local))[0]}.mp4"',
-                     "Cache-Control": "no-store"},
-        )
+        if audio in _UNSUPPORTED_AUDIO:
+            out = await asyncio.to_thread(_download_mp4, local)
+            return FileResponse(out, media_type="video/mp4",
+                                filename=os.path.splitext(os.path.basename(local))[0] + ".mp4")
+        # fall through to the raw-file serving below (Content-Length + Range)
 
     # iPhones can't decode DTS/TrueHD etc. — remux to HLS (AAC audio, seekable).
-    if await asyncio.to_thread(_audio_codec, local) in _UNSUPPORTED_AUDIO:
+    if audio in _UNSUPPORTED_AUDIO:
         return await _hls_playlist(request, local)
     size = os.path.getsize(local)
     filename = os.path.basename(local)
