@@ -21,7 +21,7 @@ evolves.
 
 | Device | LAN IP | Tailscale IP | Notes |
 |---|---|---|---|
-| Pi (backend) | 192.168.8.147 (eth0) | 100.92.219.95 (`dietpi`) | SSH `root` / password `dietpi` |
+| Pi (backend) | 192.168.8.147 (eth0) | 100.92.219.95 (`dietpi`) | SSH as `root` (password not stored in git — see deploy §) |
 | Mac | varies (192.168.8.x / 192.168.0.x) | 100.95.105.68 | runs Jellyfin :8096 |
 | iPhone | — | 100.73.186.123 | app installed via devicectl |
 | Android TV (Kodi) | 192.168.8.137 | — | TCP JSON-RPC :9090 |
@@ -143,10 +143,11 @@ HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
 ### Deploy backend (from the Mac, works via Tailscale)
 ```bash
 cd ~/Desktop/projektid/home-voice-assistant
-rsync -avz -e "sshpass -p dietpi ssh -o StrictHostKeyChecking=no" \
+rsync -avz -e "sshpass -p \"$PI_SSH_PASS\" ssh -o StrictHostKeyChecking=no" \
   app/ root@100.92.219.95:/opt/home-voice-assistant/app/
-sshpass -p dietpi ssh root@100.92.219.95 systemctl restart home-voice-assistant
+sshpass -p "$PI_SSH_PASS" ssh root@100.92.219.95 systemctl restart home-voice-assistant
 ```
+`$PI_SSH_PASS` = the Pi's root password (ask the owner; it's **not** committed).
 **Gotcha**: `app/` files belong in `/opt/home-voice-assistant/app/`, but files from
 `app/tools/` must be rsync'd to `.../app/tools/` (mind the nested path).
 
