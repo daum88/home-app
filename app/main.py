@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field
 
 from . import config, db, llm, speech
 from . import letterboxd as letterboxd_sync
+from . import opensubtitles
 from .prompts import SYSTEM_PROMPT
 from .tools import get_schemas, receipts as receipts_tool
 from .tools import TOOLS, run_tool
@@ -311,6 +312,11 @@ async def media_subtitles(path: str = "") -> Response:
                 if f.lower().endswith(".srt"):
                     srt_files.append(os.path.join(d, f))
     if not srt_files:
+        # Auto-download from OpenSubtitles (Estonian first, then English).
+        fetched = await opensubtitles.fetch_srt(local)
+        if fetched:
+            return Response(content=_srt_to_vtt(fetched), media_type="text/vtt",
+                            headers={"Cache-Control": "no-cache"})
         raise HTTPException(status_code=404, detail="no subtitles")
     # prefer Estonian subtitles
     srt_files.sort(key=lambda f: 0 if ("est" in f.lower() or "eesti" in f.lower()) else 1)

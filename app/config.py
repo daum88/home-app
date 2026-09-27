@@ -126,6 +126,13 @@ RADARR_QUALITY_PROFILE_ID = int(os.getenv("RADARR_QUALITY_PROFILE_ID", "4"))  # 
 LETTERBOXD_USER = os.getenv("LETTERBOXD_USER", "daum13").strip()
 
 # ---------------------------------------------------------------------------
+# OpenSubtitles.com (auto-download subtitles for movies without .srt)
+# ---------------------------------------------------------------------------
+OPENSUBTITLES_API_KEY = os.getenv("OPENSUBTITLES_API_KEY", "").strip()
+OPENSUBTITLES_USER = os.getenv("OPENSUBTITLES_USER", "daum13").strip()
+OPENSUBTITLES_PASS = os.getenv("OPENSUBTITLES_PASS", "").strip()
+
+# ---------------------------------------------------------------------------
 # Storage & limits
 # ---------------------------------------------------------------------------
 DB_PATH = os.getenv("DB_PATH", "data/home.db").strip()
