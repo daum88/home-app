@@ -34,6 +34,7 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         MARKETING_VERSION: "1.0"
         ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: "NO"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
   HomeTests:
     type: bundle.unit-test
     platform: iOS
