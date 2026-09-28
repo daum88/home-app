@@ -2,23 +2,16 @@
 from __future__ import annotations
 
 import sqlite3
-import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import patch
 
-from app import config, db
+from app import db
+from tests.base import HomeTestCase
 
 
-class InventoryStorageTests(unittest.TestCase):
+class InventoryStorageTests(HomeTestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.path = Path(self.temp.name) / "home.db"
-        path_patch = patch.object(config, "DB_PATH", str(self.path))
-        path_patch.start()
-        self.addCleanup(path_patch.stop)
-        db.init_db()
+        super().setUp()
+        self.path = self.use_temp_db()
 
     def test_missing_barcodes_do_not_overwrite_other_receipt_items(self):
         db.inventory_add(name="Milk", barcode="")

@@ -1,16 +1,18 @@
 import Foundation
 
-struct ResumeDecision {
+public struct ResumeDecision {
     private var position: Double?
     private var duration: Double?
-    private(set) var didSeek = false
+    public private(set) var didSeek = false
 
-    mutating func receivePosition(_ value: Double) -> Double? {
+    public init() {}
+
+    public mutating func receivePosition(_ value: Double) -> Double? {
         position = value
         return seekTarget()
     }
 
-    mutating func receiveDuration(_ value: Double) -> Double? {
+    public mutating func receiveDuration(_ value: Double) -> Double? {
         duration = value
         return seekTarget()
     }

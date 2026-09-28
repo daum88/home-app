@@ -3,7 +3,7 @@
 Every call is wrapped: if the hOn backend changes again (it has before), this
 module raises a friendly ToolError and the rest of the assistant keeps working.
 
-Requires an email+password hOn account (see AGENT_GUIDELINES / RESEARCH.md).
+Requires an email+password hOn account (see AGENTS.md / RESEARCH.md).
 """
 from __future__ import annotations
 

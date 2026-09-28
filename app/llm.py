@@ -21,7 +21,6 @@ log = logging.getLogger(__name__)
 
 MAX_TOOL_ROUNDS = 3
 
-OPENAI_URL = config.LLM_BASE_URL.rstrip("/") + "/chat/completions"
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
 
@@ -62,7 +61,7 @@ async def _openai_request(client: httpx.AsyncClient, messages: list[dict], tools
         body["tool_choice"] = "auto"
     try:
         resp = await client.post(
-            OPENAI_URL,
+            config.LLM_BASE_URL.rstrip("/") + "/chat/completions",
             headers={"Authorization": f"Bearer {config.OPENAI_API_KEY}"},
             json=body,
         )

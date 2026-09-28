@@ -1,5 +1,5 @@
 import XCTest
-@testable import Home
+import HomeCore
 
 final class InventoryDecodingTests: XCTestCase {
     func testLocalPackagesKeepDistinctIdsAndCloudMetadata() throws {

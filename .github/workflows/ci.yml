@@ -33,9 +33,10 @@ jobs:
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - run: swift test --package-path ios/Packages/HomeCore
       - run: command -v xcodegen || brew install xcodegen
       - run: cd ios && xcodegen generate
       - run: |
           xcodebuild -project ios/Home.xcodeproj -scheme Home -configuration Debug \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-            -derivedDataPath /tmp/HomeCI CODE_SIGNING_ALLOWED=NO test
+            -derivedDataPath /tmp/HomeCI CODE_SIGNING_ALLOWED=NO build

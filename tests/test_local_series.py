@@ -1,34 +1,28 @@
 """Series remain browsable from the Pi when Jellyfin is unavailable."""
 from __future__ import annotations
 
-import tempfile
 import unittest
-from pathlib import Path
-from unittest.mock import patch
 
-from app import config
 from app.tools import run_tool
 from app.tools import jellyfin
 from app.tools.base import ToolError
+from tests.base import AsyncHomeTestCase
 
 
-class LocalSeriesTests(unittest.IsolatedAsyncioTestCase):
+class LocalSeriesTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name).resolve() / "media"
+        await super().asyncSetUp()
+        self.root = self.tmp.resolve() / "media"
         self.show = self.root / "serials" / "The Show (2025)"
         season = self.show / "Season 1"
         season.mkdir(parents=True)
         (season / "The.Show.S01E02.mkv").write_bytes(b"episode 2")
         (season / "The.Show.S01E01.mp4").write_bytes(b"episode 1")
         (season / "Extra Feature.mkv").write_bytes(b"extra")
-        self.outside = Path(self.temp.name).resolve() / "outside.mkv"
+        self.outside = self.tmp.resolve() / "outside.mkv"
         self.outside.write_bytes(b"private")
         (season / "Outside.mkv").symlink_to(self.outside)
-        root_patch = patch.object(config, "FS_ROOT", str(self.root))
-        root_patch.start()
-        self.addCleanup(root_patch.stop)
+        self.patch_config(FS_ROOT=str(self.root))
 
     async def test_list_and_order_local_series_episodes(self):
         listing = await run_tool("local_series", {})

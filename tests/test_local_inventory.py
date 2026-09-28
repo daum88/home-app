@@ -1,25 +1,20 @@
 """Canonical local inventory remains usable offline and imports hOn non-destructively."""
 from __future__ import annotations
 
-import tempfile
 import unittest
 from datetime import date, timedelta
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from app import config, db
+from app import config
 from app.tools import hon_inventory, inventory, local_inventory
 from app.tools.base import ToolError
+from tests.base import AsyncHomeTestCase
 
 
-class LocalInventoryTests(unittest.IsolatedAsyncioTestCase):
+class LocalInventoryTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        path_patch = patch.object(config, "DB_PATH", str(Path(self.temp.name) / "home.db"))
-        path_patch.start()
-        self.addCleanup(path_patch.stop)
-        db.init_db()
+        await super().asyncSetUp()
+        self.use_temp_db()
 
     async def test_add_expiring_and_remove_work_without_hon(self):
         tomorrow = (date.today() + timedelta(days=1)).isoformat()

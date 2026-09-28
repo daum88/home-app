@@ -1,4 +1,5 @@
 import SwiftUI
+import HomeCore
 
 /// Food dashboard: what's in the fridge, what's expiring, and what's needed.
 /// Full inventory / shopping / recipes / spending open from here.

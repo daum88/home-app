@@ -1,24 +1,19 @@
 """Receipt, barcode and recipe paths all use the same local inventory."""
 from __future__ import annotations
 
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from app import config, db
+from app import db
 from app.tools import barcode, local_inventory, receipts, recipes
 from app.tools.base import ToolError
+from tests.base import AsyncHomeTestCase
 
 
-class InventoryPipelineTests(unittest.IsolatedAsyncioTestCase):
+class InventoryPipelineTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        path_patch = patch.object(config, "DB_PATH", str(Path(self.temp.name) / "home.db"))
-        path_patch.start()
-        self.addCleanup(path_patch.stop)
-        db.init_db()
+        await super().asyncSetUp()
+        self.use_temp_db()
 
     async def test_receipt_imports_packages_without_cloud_writes_or_retry_duplicates(self):
         parsed = {
