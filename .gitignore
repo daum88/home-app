@@ -18,5 +18,11 @@ venv/
 # Web tests
 node_modules/
 
+# SwiftPM
+.build/
+
+# IDE
+.idea/
+
 # OS
 .DS_Store

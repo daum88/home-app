@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 from app import main
+from tests.base import AsyncHomeTestCase
 
 
 class FakeProcess:
@@ -26,11 +26,10 @@ class FakeProcess:
         return 0
 
 
-class HLSSessionTests(unittest.IsolatedAsyncioTestCase):
+class HLSSessionTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.root = Path(self.temp.name) / ".hls"
+        await super().asyncSetUp()
+        self.root = self.tmp / ".hls"
         root_patch = patch.object(main, "_HLS_DIR", str(self.root))
         root_patch.start()
         self.addCleanup(root_patch.stop)

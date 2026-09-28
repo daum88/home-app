@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import UniformTypeIdentifiers
+import HomeCore
 
 struct FridgeView: View {
     @State private var items: [FridgeItem] = []

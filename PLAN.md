@@ -8,6 +8,23 @@ The proposed UI direction and motion handoff for a future agent is in
 [`docs/DESIGN_BRIEF.md`](docs/DESIGN_BRIEF.md). It is **design guidance only**;
 review prototypes with the owner before redesigning the app.
 
+## Current work — test speed & testability (2026-09-28)
+
+Measured: Python 0.9 s, web 0.7 s, iOS ~75 s wall for 5 ms of pure-logic tests
+(full app + extensions build + simulator boot ~30 s). Fix the iOS bottleneck and
+remove backend testability traps.
+
+- [x] Extract `HomeCore` SwiftPM package (`ResumeDecision`, fridge inventory
+      models); run logic tests via `swift test` on macOS (no simulator); CI keeps
+      an `xcodebuild build` smoke check for the app.
+- [x] Backend: stop capturing config at import time (`llm.py` `OPENAI_URL`);
+      make the `app.tools` registry lazy so leaf imports don't pull every
+      integration dependency.
+- [x] Add `tests/base.py` shared fixtures (temp dir, config patching, temp
+      SQLite, ASGI client, quiet httpx logs) and migrate duplicated setup.
+
+---
+
 ## Current delivery — unified inventory, reliability and media
 
 Decision: SQLite is the sole inventory used by the Fridge tab, widget, receipts,
@@ -173,7 +190,7 @@ prioritized maintenance work rather than treating the old milestones as pending.
    consolidate the three Open Food Facts lookups (which currently have different
    offline/fallback behavior), shared client configuration and hard-coded URLs.
    Audit unused public helpers such as `db.cache_get/set` and
-   `jellyfin.media_file_info` before removal. Update `AGENT_GUIDELINES.md` as
+   `jellyfin.media_file_info` before removal. Update `AGENTS.md` as
    architecture changes.
 
 ---

@@ -1,42 +1,27 @@
 """Offline regression tests for filesystem access through media endpoints."""
 from __future__ import annotations
 
-import tempfile
 import threading
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import httpx
-
-from app import config
-from app.main import app
 from app.tools.base import ToolError
 from app.tools import jellyfin
+from tests.base import AsyncHomeTestCase
 
 
-class MediaPathTests(unittest.IsolatedAsyncioTestCase):
+class MediaPathTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addAsyncCleanup(self._cleanup_temp)
-        self.root = Path(self.temp.name) / "media"
+        await super().asyncSetUp()
+        self.root = (self.tmp / "media").resolve()
         self.root.mkdir()
-        self.root = self.root.resolve()
-        self.outside = Path(self.temp.name).resolve() / "private.mp4"
+        self.outside = self.tmp.resolve() / "private.mp4"
         self.outside.write_bytes(b"private")
         self.movie = self.root / "filmid" / "Movie" / "movie.mp4"
         self.movie.parent.mkdir(parents=True)
         self.movie.write_bytes(b"movie")
         (self.movie.parent / "movie.srt").write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n")
-        root_patch = patch.object(config, "FS_ROOT", str(self.root))
-        smb_patch = patch.object(config, "JELLYFIN_SMB_PREFIX", "/Volumes/Media")
-        root_patch.start()
-        smb_patch.start()
-        self.addCleanup(root_patch.stop)
-        self.addCleanup(smb_patch.stop)
-
-    def _cleanup_temp(self):
-        self.temp.cleanup()
+        self.patch_config(FS_ROOT=str(self.root), JELLYFIN_SMB_PREFIX="/Volumes/Media")
 
     async def test_local_paths_reject_escapes_and_accept_valid_smb_paths(self):
         self.assertEqual(jellyfin.local_path(str(self.movie)), str(self.movie))
@@ -57,35 +42,32 @@ class MediaPathTests(unittest.IsolatedAsyncioTestCase):
                 jellyfin.local_path(path)
 
     async def test_media_endpoints_reject_external_paths_and_serve_valid_files(self):
-        transport = httpx.ASGITransport(app=app)
         with patch("app.main._audio_codec", return_value="aac"):
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-                for endpoint in ("/api/media/stream", "/api/media/subtitles"):
-                    for path in (str(self.outside), "/Volumes/Media/../private.mp4"):
-                        with self.subTest(endpoint=endpoint, path=path):
-                            response = await client.get(endpoint, params={"path": path})
-                            self.assertEqual(response.status_code, 400)
-                    response = await client.get(endpoint, params={"path": str(self.movie)})
-                    self.assertEqual(response.status_code, 200)
-                    if endpoint.endswith("stream"):
-                        self.assertEqual(response.content, b"movie")
-                    else:
-                        self.assertIn("WEBVTT", response.text)
+            client = self.api_client()
+            for endpoint in ("/api/media/stream", "/api/media/subtitles"):
+                for path in (str(self.outside), "/Volumes/Media/../private.mp4"):
+                    with self.subTest(endpoint=endpoint, path=path):
+                        response = await client.get(endpoint, params={"path": path})
+                        self.assertEqual(response.status_code, 400)
+                response = await client.get(endpoint, params={"path": str(self.movie)})
+                self.assertEqual(response.status_code, 200)
+                if endpoint.endswith("stream"):
+                    self.assertEqual(response.content, b"movie")
+                else:
+                    self.assertIn("WEBVTT", response.text)
 
     async def test_subtitles_prefer_estonian_and_convert_timestamps(self):
         (self.movie.parent / "movie.est.srt").write_text(
             "1\n00:00:01,000 --> 00:00:02,000\nTere\n", encoding="utf-8"
         )
-        transport = httpx.ASGITransport(app=app)
-        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            response = await client.get("/api/media/subtitles", params={"path": str(self.movie)})
+        client = self.api_client()
+        response = await client.get("/api/media/subtitles", params={"path": str(self.movie)})
         self.assertEqual(response.status_code, 200)
         self.assertIn("00:00:01.000 --> 00:00:02.000", response.text)
         self.assertIn("Tere", response.text)
         self.assertNotIn("Hello", response.text)
 
     async def test_media_stream_single_byte_ranges(self):
-        transport = httpx.ASGITransport(app=app)
         cases = (
             ("bytes=0-1", 206, b"mo", "bytes 0-1/5"),
             ("bytes=2-", 206, b"vie", "bytes 2-4/5"),
@@ -97,16 +79,16 @@ class MediaPathTests(unittest.IsolatedAsyncioTestCase):
             ("bytes=0-1,3-4", 416, None, "bytes */5"),
         )
         with patch("app.main._audio_codec", return_value="aac"):
-            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-                for header, status, content, content_range in cases:
-                    with self.subTest(header=header):
-                        response = await client.get(
-                            "/api/media/stream", params={"path": str(self.movie)}, headers={"Range": header}
-                        )
-                        self.assertEqual(response.status_code, status)
-                        self.assertEqual(response.headers["content-range"], content_range)
-                        if content is not None:
-                            self.assertEqual(response.content, content)
+            client = self.api_client()
+            for header, status, content, content_range in cases:
+                with self.subTest(header=header):
+                    response = await client.get(
+                        "/api/media/stream", params={"path": str(self.movie)}, headers={"Range": header}
+                    )
+                    self.assertEqual(response.status_code, status)
+                    self.assertEqual(response.headers["content-range"], content_range)
+                    if content is not None:
+                        self.assertEqual(response.content, content)
 
     async def test_local_movie_scan_runs_off_the_event_loop(self):
         worker_ids = []

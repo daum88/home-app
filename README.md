@@ -71,7 +71,7 @@ data/           SQLite DB + cache (git-ignored)
 
 ## Docs
 
-- **[AGENT_GUIDELINES.md](AGENT_GUIDELINES.md)** — full technical reference for
+- **[AGENTS.md](AGENTS.md)** — full technical reference for
   AI agents / future contributors: every service, IP, API, tool, workflow,
   build step, and gotcha.
 - [Session handoff](docs/SESSION_SUMMARY.md) — what was implemented, tested and
@@ -95,11 +95,16 @@ Run offline backend regression tests with Python 3.11 after installing
 ```bash
 python -m unittest discover -s tests -v
 npm ci && npm test            # web behavior tests
+swift test --package-path ios/Packages/HomeCore   # iOS logic tests (no simulator)
 cd ios
 xcodegen generate
 xcodebuild -project Home.xcodeproj -scheme Home \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO test
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO build
 ```
+
+iOS logic tests live in the `HomeCore` Swift package (`ios/Packages/HomeCore`)
+so they run in seconds on macOS without booting a simulator or building the
+app; the `xcodebuild` step is a compile smoke check of the full app.
 
 See [the real-device checklist](docs/DEVICE_CHECKLIST.md) before deploying;
 CI and simulator tests do not replace Pi/iPhone acceptance checks.
@@ -119,5 +124,5 @@ cd ios && xcodegen generate
 xcodebuild -project Home.xcodeproj -scheme Home -destination 'platform=iOS,name=…' build
 ```
 
-See **AGENT_GUIDELINES.md** for the complete, current picture (IPs, credentials,
+See **AGENTS.md** for the complete, current picture (IPs, credentials,
 deploy commands, known issues).

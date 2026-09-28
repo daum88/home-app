@@ -2,27 +2,22 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
 
 import httpx
 
-from app import config
 from app.tools import jellyfin
+from tests.base import AsyncHomeTestCase
 
 
-class JellyfinClientTests(unittest.IsolatedAsyncioTestCase):
+class JellyfinClientTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
+        await super().asyncSetUp()
         self.addCleanup(jellyfin._poster_locks.clear)
-        for key, value in (("DB_PATH", str(Path(self.temp.name) / "home.db")),
-                           ("JELLYFIN_URL", "http://jellyfin"), ("JELLYFIN_API_KEY", "test-key")):
-            setting = patch.object(config, key, value)
-            setting.start()
-            self.addCleanup(setting.stop)
+        # Poster file cache lives next to the DB; no database is needed here.
+        self.patch_config(DB_PATH=str(self.tmp / "home.db"),
+                          JELLYFIN_URL="http://jellyfin", JELLYFIN_API_KEY="test-key")
 
     async def test_poster_downloads_once_for_concurrent_requests_and_uses_cache(self):
         calls = []

@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import AVFAudio
+import HomeCore
 
 /// Full-screen video player with loading spinner, error handling and a
 /// subtitle overlay (parsed from WebVTT served by the backend).

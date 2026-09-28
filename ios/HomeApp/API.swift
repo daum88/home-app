@@ -1,4 +1,5 @@
 import Foundation
+import HomeCore
 
 enum APIError: LocalizedError {
     case server(String)
@@ -95,19 +96,8 @@ struct Torrent: Decodable, Identifiable {
 struct TorrentList: Decodable { var torrents: [Torrent] }
 
 // ── Fridge inventory ─────────────────────────────────────────────────────────
-struct FridgeItem: Decodable, Identifiable, Hashable {
-    var id: Int
-    var name: String
-    var barcode: String?
-    var brands: String?
-    var category: String?
-    var quantity: Double?
-    var unit: String?
-    var expiresOn: String?
-    var position: String?
-}
-struct FridgeInventory: Decodable { var items: [FridgeItem] }
-
+// FridgeItem and FridgeInventory live in the HomeCore package so they can be
+// unit-tested without building the app.
 struct PriceHistoryEntry: Decodable, Identifiable {
     var barcode: String?
     var name: String?

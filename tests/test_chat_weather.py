@@ -2,24 +2,18 @@
 from __future__ import annotations
 
 import sqlite3
-import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from app import config, db, main
+from app import db, main
 from app.tools import weather
+from tests.base import AsyncHomeTestCase
 
 
-class ChatWeatherTests(unittest.IsolatedAsyncioTestCase):
+class ChatWeatherTests(AsyncHomeTestCase):
     async def asyncSetUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.db_path = Path(self.temp.name) / "home.db"
-        db_path_patch = patch.object(config, "DB_PATH", str(self.db_path))
-        db_path_patch.start()
-        self.addCleanup(db_path_patch.stop)
-        db.init_db()
+        await super().asyncSetUp()
+        self.db_path = self.use_temp_db()
 
     async def test_chat_persists_complete_exchange_and_recalls_it(self):
         with patch.object(main.llm, "chat", new_callable=AsyncMock) as llm_chat:
