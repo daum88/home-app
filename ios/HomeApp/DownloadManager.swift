@@ -1,4 +1,24 @@
 import Foundation
+import HomeCore
+
+private enum DownloadFailure: LocalizedError {
+    case invalidResponse
+    case server(Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse: "The server did not return a valid download."
+        case .server(let status): "Download failed (HTTP \(status))."
+        }
+    }
+}
+
+private func downloadDirectory() throws -> URL {
+    let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appendingPathComponent("Downloads", isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    return directory
+}
 
 /// Tracks movies downloaded to the phone and handles saving/deleting them.
 /// Uses a background URLSession so downloads continue when the app is closed.
@@ -17,13 +37,13 @@ final class DownloadManager: NSObject, ObservableObject {
 
     @Published var items: [DownloadedItem] = []
     @Published var activeDownloads: Set<String> = []
-    /// Download progress by destination filename (0…1).
+    /// Download progress by source filename (0…1).
     @Published var progress: [String: Double] = [:]
 
     private var session: URLSession!
-    private var continuations: [String: CheckedContinuation<Void, Error>] = [:]
-    private var destinations: [Int: URL] = [:]
+    private var continuations: [Int: CheckedContinuation<Void, Error>] = [:]
     private var names: [Int: String] = [:]
+    private var completions: [Int: DownloadCompletion] = [:]
 
     override init() {
         super.init()
@@ -33,15 +53,9 @@ final class DownloadManager: NSObject, ObservableObject {
         session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
     }
 
-    private var dir: URL {
-        let d = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Downloads", isDirectory: true)
-        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
-        return d
-    }
-
     func refresh() {
-        let urls = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey])) ?? []
+        guard let directory = try? downloadDirectory() else { items = []; return }
+        let urls = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey, .contentModificationDateKey])) ?? []
         items = urls.compactMap { url in
             guard let attrs = try? url.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) else { return nil }
             return DownloadedItem(
@@ -57,29 +71,47 @@ final class DownloadManager: NSObject, ObservableObject {
 
     /// Download a remote file into the local Downloads directory.
     func download(name: String, filename: String, remoteURL: URL) async throws {
-        let safeName = filename.isEmpty ? name : filename
-        let dest = dir.appendingPathComponent(safeName)
+        let sourceName = DownloadFilename.resolved(source: filename.isEmpty ? name : filename, suggested: nil)
+        let dest = try downloadDirectory().appendingPathComponent(sourceName)
         if FileManager.default.fileExists(atPath: dest.path) { refresh(); return }
 
-        activeDownloads.insert(safeName)
-        progress[safeName] = 0
-
-        do {
-            try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
-                continuations[safeName] = cont
-                let task = session.downloadTask(with: URLRequest(url: remoteURL))
-                destinations[task.taskIdentifier] = dest
-                names[task.taskIdentifier] = safeName
-                task.resume()
-            }
-        } catch {
-            activeDownloads.remove(safeName)
-            progress[safeName] = nil
-            throw error
+        activeDownloads.insert(sourceName)
+        progress[sourceName] = 0
+        defer {
+            activeDownloads.remove(sourceName)
+            progress[sourceName] = nil
         }
-        activeDownloads.remove(safeName)
-        progress[safeName] = nil
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            let task = session.downloadTask(with: URLRequest(url: remoteURL))
+            let id = task.taskIdentifier
+            continuations[id] = continuation
+            names[id] = sourceName
+            task.taskDescription = sourceName
+            task.resume()
+        }
         refresh()
+    }
+
+    private func fileFinished(_ result: Result<Void, Error>, taskID: Int) {
+        var completion = completions[taskID] ?? DownloadCompletion()
+        let outcome = completion.fileFinished(result)
+        completions[taskID] = completion
+        if let outcome { finish(outcome, taskID: taskID) }
+    }
+
+    private func taskCompleted(error: Error?, taskID: Int) {
+        var completion = completions[taskID] ?? DownloadCompletion()
+        let outcome = completion.networkFinished(error: error)
+        completions[taskID] = completion
+        if let outcome { finish(outcome, taskID: taskID) }
+    }
+
+    private func finish(_ result: Result<Void, Error>, taskID: Int) {
+        completions[taskID] = nil
+        names[taskID] = nil
+        if case .success = result { refresh() }
+        continuations.removeValue(forKey: taskID)?.resume(with: result)
     }
 
     func delete(_ item: DownloadedItem) {
@@ -103,26 +135,35 @@ extension DownloadManager: URLSessionDownloadDelegate {
 
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask,
                                 didFinishDownloadingTo location: URL) {
+        let result: Result<Void, Error>
+        do {
+            guard let response = downloadTask.response as? HTTPURLResponse else {
+                throw DownloadFailure.invalidResponse
+            }
+            guard (200..<300).contains(response.statusCode) else {
+                throw DownloadFailure.server(response.statusCode)
+            }
+            let suggested = response.value(forHTTPHeaderField: "Content-Disposition") == nil
+                ? nil : response.suggestedFilename
+            let filename = DownloadFilename.resolved(source: downloadTask.taskDescription ?? "download", suggested: suggested)
+            let destination = try downloadDirectory().appendingPathComponent(filename)
+            if !FileManager.default.fileExists(atPath: destination.path) {
+                try FileManager.default.moveItem(at: location, to: destination)
+            }
+            result = .success(())
+        } catch {
+            result = .failure(error)
+        }
+        let id = downloadTask.taskIdentifier
         Task { @MainActor [weak self] in
-            guard let self, let dest = self.destinations[downloadTask.taskIdentifier] else { return }
-            try? FileManager.default.removeItem(at: dest)
-            try? FileManager.default.moveItem(at: location, to: dest)
+            self?.fileFinished(result, taskID: id)
         }
     }
 
     nonisolated func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        let id = task.taskIdentifier
         Task { @MainActor [weak self] in
-            guard let self, let name = self.names[task.taskIdentifier] else { return }
-            if let cont = self.continuations[name] {
-                self.continuations[name] = nil
-                if let error {
-                    cont.resume(throwing: error)
-                } else {
-                    cont.resume()
-                }
-            }
-            self.names[task.taskIdentifier] = nil
-            self.destinations[task.taskIdentifier] = nil
+            self?.taskCompleted(error: error, taskID: id)
         }
     }
 

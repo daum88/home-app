@@ -8,6 +8,14 @@ The proposed UI direction and motion handoff for a future agent is in
 [`docs/DESIGN_BRIEF.md`](docs/DESIGN_BRIEF.md). It is **design guidance only**;
 review prototypes with the owner before redesigning the app.
 
+## Current work — offline downloads and media boundary
+
+- [x] Honor the server's suggested download filename (including MP4 remuxes), reject HTTP failures, and report file-move failures instead of false success.
+- [x] Add focused tests for filename selection and download completion; keep the background-session callbacks safe regardless of actor scheduling.
+- [x] Move media streaming/HLS session code out of the FastAPI application into its own feature module, retaining routes, lifecycle and regression coverage. Do not refactor unrelated database repositories.
+- [x] Run backend, Swift package and full iOS simulator build validation; update the system reference.
+- [ ] Pi/iPhone deployment and playback smoke check (requires deployment credentials/device access).
+
 ## Current work — test speed & testability (2026-09-28)
 
 Measured: Python 0.9 s, web 0.7 s, iOS ~75 s wall for 5 ms of pure-logic tests

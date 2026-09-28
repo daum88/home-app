@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from app import config, main
+from app import config, main, media_streaming
 
 
 class LifespanTests(unittest.IsolatedAsyncioTestCase):
@@ -21,7 +21,7 @@ class LifespanTests(unittest.IsolatedAsyncioTestCase):
                  patch.object(config, "JELLYFIN_API_KEY", "key" if configured else ""), \
                  patch.object(main, "_receipt_watcher", new_callable=AsyncMock), \
                  patch.object(main, "_warm_up", new_callable=AsyncMock), \
-                 patch.object(main, "_hls_cleanup", new_callable=AsyncMock), \
+                 patch.object(media_streaming, "_hls_cleanup", new_callable=AsyncMock), \
                  patch.object(main, "_letterboxd_watcher", new_callable=AsyncMock) as letterboxd, \
                  patch.object(main, "_jellyfin_refresh_watcher", new_callable=AsyncMock) as jellyfin:
                 async with main.lifespan(main.app):

@@ -5,6 +5,7 @@ import threading
 import unittest
 from unittest.mock import AsyncMock, patch
 
+from app import media_streaming
 from app.tools.base import ToolError
 from app.tools import jellyfin
 from tests.base import AsyncHomeTestCase
@@ -42,7 +43,7 @@ class MediaPathTests(AsyncHomeTestCase):
                 jellyfin.local_path(path)
 
     async def test_media_endpoints_reject_external_paths_and_serve_valid_files(self):
-        with patch("app.main._audio_codec", return_value="aac"):
+        with patch.object(media_streaming, "_audio_codec", return_value="aac"):
             client = self.api_client()
             for endpoint in ("/api/media/stream", "/api/media/subtitles"):
                 for path in (str(self.outside), "/Volumes/Media/../private.mp4"):
@@ -78,7 +79,7 @@ class MediaPathTests(AsyncHomeTestCase):
             ("bytes=2-1", 416, None, "bytes */5"),
             ("bytes=0-1,3-4", 416, None, "bytes */5"),
         )
-        with patch("app.main._audio_codec", return_value="aac"):
+        with patch.object(media_streaming, "_audio_codec", return_value="aac"):
             client = self.api_client()
             for header, status, content, content_range in cases:
                 with self.subTest(header=header):
@@ -89,6 +90,35 @@ class MediaPathTests(AsyncHomeTestCase):
                     self.assertEqual(response.headers["content-range"], content_range)
                     if content is not None:
                         self.assertEqual(response.content, content)
+
+    async def test_download_keeps_original_filename_without_remux(self):
+        source = self.movie.with_suffix(".mkv")
+        source.write_bytes(b"movie")
+        with patch.object(media_streaming, "_audio_codec", return_value="aac"), \
+             patch.object(media_streaming, "_video_codec", return_value="h264"):
+            response = await self.api_client().get(
+                "/api/media/stream", params={"path": str(source), "download": 1}
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('filename="movie.mkv"', response.headers["content-disposition"])
+        self.assertEqual(response.content, b"movie")
+
+    async def test_download_uses_mp4_filename_for_remuxed_media(self):
+        source = self.movie.with_suffix(".mkv")
+        source.write_bytes(b"movie")
+        prepared = self.tmp / "prepared.mp4"
+        prepared.write_bytes(b"mp4")
+        with patch.object(media_streaming, "_audio_codec", return_value="dts"), \
+             patch.object(media_streaming, "_video_codec", return_value="h264"), \
+             patch.object(media_streaming, "_download_mp4", return_value=str(prepared)) as remux:
+            response = await self.api_client().get(
+                "/api/media/stream", params={"path": str(source), "download": 1}
+            )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["content-type"], "video/mp4")
+        self.assertIn('filename="movie.mp4"', response.headers["content-disposition"])
+        self.assertEqual(response.content, b"mp4")
+        remux.assert_called_once_with(str(source), False)
 
     async def test_local_movie_scan_runs_off_the_event_loop(self):
         worker_ids = []
