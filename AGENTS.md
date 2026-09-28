@@ -72,14 +72,15 @@ downloads/    Transmission download target
 - Drive is **NTFS** (≈1 TB). Has some filesystem corruption (see Known issues).
 - The Pi serves files directly: `GET /api/media/stream?path=<path>` with single
   byte-range support (including suffix ranges, 416 for unsatisfiable ranges).
-  It auto-transcodes **DTS/TrueHD/FLAC/etc. → AAC** (ffmpeg, video copied)
-  so iPhones can play them. In-app unsupported-audio playback uses HLS;
+  It auto-transcodes **DTS/TrueHD/FLAC/etc. → AAC** and **XviD/DivX → H.264**
+  (ffmpeg) so iPhones can play them. In-app unsupported-codec playback uses HLS;
   offline downloads use a progressive remux.
 
 ### Codec rules (important!)
 - **The TV can't decode 10-bit HEVC/HDR/AV1** — only H.264/x264 plays.
 - **The iPhone plays H.264, HEVC, and 10-bit/HDR fine**, but **not DTS audio**
-  (handled by auto-transcode) and **not XviD/`.avi`** (old SD files).
+  (handled by auto-transcode); XviD/DivX `.avi` (old SD files) are video-transcoded
+  to H.264 on the fly.
 - Radarr has a custom-format rule: x264 +10, x265/10-bit/HDR/AV1 −10000, min score 0.
   This keeps auto-downloads TV-playable.
 
@@ -89,13 +90,17 @@ downloads/    Transmission download target
 
 ### Layout
 ```
-app/main.py            FastAPI routes + background watchers
+app/main.py            FastAPI routes + background watchers + media streaming/transcode
 app/config.py          all config, read once from .env
-app/db.py              SQLite helpers (canonical fridge items, recipes, shopping, history, receipts…)
+app/db.py              SQLite helpers (canonical fridge items, recipes, shopping, history, receipts, playback…)
 app/llm.py             DeepSeek (OpenAI-compatible) client + tool loop
-app/prompts.py         system prompt (answers in Estonian)
+app/prompts.py         system prompt (English by default; matches the user's language)
 app/speech.py          server-side STT (Groq, optional)
 app/letterboxd.py      Letterboxd watchlist → Radarr sync
+app/media_subtitles.py subtitle lookup route + SubRip → WebVTT conversion
+app/opensubtitles.py   OpenSubtitles client — auto-downloads subs by moviehash (Estonian, then English)
+app/smartthings_oauth.py SmartThings OAuth 2.0 — washer auth via auto-refreshed tokens
+app/tmdb.py            TMDB poster fetcher — poster art when the Mac/Jellyfin is offline
 app/tools/*.py         the tool implementations
 app/tools/registry.py  tool registry (TOOLS dict) — name, schema, handler
 app/tools/__init__.py  lazy facade over the registry — importing a leaf module
@@ -113,7 +118,10 @@ RADARR_URL=http://localhost:7878   RADARR_API_KEY=…
 LETTERBOXD_USER=daum13
 FS_ROOT=/mnt/ketas
 TRANSMISSION_URL=http://localhost:9091
-HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
+HON_USER/HON_PASS, SAVECONNECT_URL=http://192.168.8.146, …
+SMARTTHINGS_CLIENT_ID/SECRET/REDIRECT_URI  (washer OAuth; SMARTTHINGS_PAT is a fallback)
+TMDB_API_KEY=…          (posters when Jellyfin/Mac is offline; cached under $FS_ROOT/.tmdb)
+OPENSUBTITLES_API_KEY/USER/PASS  (auto-download subtitles; disabled until set)
 ```
 
 ### HTTP API (all under the Pi's :8000)
@@ -127,8 +135,14 @@ HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
 | `/api/receipts/import` | POST | multipart PDF → parsed receipt |
 | `/api/log` | POST | receive an error line from the app → `{"message"}` |
 | `/api/jellyfin/image/{item_id}` | GET | proxied poster (disk-cached 7 days) |
-| `/api/media/stream?path=` | GET | stream a movie/episode (Range + DTS→AAC transcode) |
+| `/api/tmdb/poster?title=&year=&kind=` | GET | TMDB poster (cached on the drive) when Jellyfin is offline |
+| `/api/playback` | GET/POST | read/save playback position for a path |
+| `/api/playback/watched` | POST | mark a path watched/unwatched |
+| `/api/playback/continue` / `/api/playback/status` | GET | continue-watching list / all playback records |
+| `/api/media/stream?path=` | GET | stream a movie/episode (Range; DTS→AAC audio transcode, XviD→H.264 video transcode) |
 | `/api/media/subtitles?path=` | GET | `.srt` → WebVTT (Estonian preferred) |
+| `/api/media/hls/{token}/{file}` | GET | HLS segments for transcoded playback |
+| `/oauth/authorize` + `/oauth/exchange` | GET/POST | SmartThings OAuth flow (washer) |
 
 ### Tools (≈60, grouped)
 - **Media**: `jellyfin_status/search/recent/resume/library/item_detail/delete/refresh/stream_url/download_url/episodes`, `local_movies`
@@ -147,7 +161,7 @@ HON_USER/HON_PASS, SMARTTHINGS_PAT, SAVECONNECT_URL=http://192.168.8.146, …
 
 ### Deploy backend (from the Mac, works via Tailscale)
 ```bash
-cd ~/Desktop/projektid/home-voice-assistant
+cd ~/projects/daum88/home-app
 rsync -avz -e "sshpass -p \"$PI_SSH_PASS\" ssh -o StrictHostKeyChecking=no" \
   app/ root@100.92.219.95:/opt/home-voice-assistant/app/
 sshpass -p "$PI_SSH_PASS" ssh root@100.92.219.95 systemctl restart home-voice-assistant
@@ -236,7 +250,8 @@ Liquid Glass look: `glassEffect` cards, `Palette.accent` (blue → teal gradient
 ### Playing a movie/episode
 - App fetches library from Jellyfin; movies fall back to `local_movies` and
   series/episodes to `local_series`/`local_episodes` when the Mac is offline.
-  Offline entries have no Jellyfin posters, cast or descriptions.
+  Offline entries have no Jellyfin cast or descriptions; posters come from TMDB
+  (`app/tmdb.py`, cached on the drive) when `TMDB_API_KEY` is set.
 - `Play` → `GET /api/media/stream?path=<path>` — Pi serves the file directly.
 - Subtitles: app fetches `/api/media/subtitles?path=` (WebVTT) and overlays.
 
@@ -257,17 +272,21 @@ Liquid Glass look: `glassEffect` cards, `Palette.accent` (blue → teal gradient
   authorize callers. Do not expose :8000 publicly or to untrusted peers;
   `/api/tools/{name}` permits device control, file reads and media deletion.
   Coordinated client/server authentication is tracked in `PLAN.md`.
-- **SmartThings PAT expires every 24 h** — washer breaks daily until the user
-  generates a new PAT (`account.smartthings.com/tokens`) and it's put in `.env`.
-  (OAuth is the long-term fix, deferred.)
+- **SmartThings auth**: washer uses OAuth 2.0 (`smartthings_oauth.py`) with a locally
+  stored, auto-refreshed refresh token — set `SMARTTHINGS_CLIENT_ID/SECRET` and run
+  `/oauth/authorize` → `/oauth/exchange` once. A hand-edited PAT
+  (`account.smartthings.com/tokens`, expires every 24 h) still works as a fallback
+  until OAuth is configured.
 - **Double NAT** (see §1): TP-Link should be in AP mode. Until then, use Tailscale.
-- **Mac must be on for Jellyfin metadata/posters** — streaming works without it
-  (Pi scans movies and series/episodes, with titles but no posters).
+- **Mac must be on for Jellyfin metadata** — streaming works without it
+  (Pi scans movies and series/episodes, with titles; posters fall back to TMDB).
 - **10-bit HEVC/HDR/AV1** play on iPhone but **not** the TV. Radarr avoids
   downloading them, but pre-existing files remain (flagged with 🔴 badges).
 - **Offline transcoded MP4 downloads are progressive**; unsupported-audio
   in-app playback uses HLS, while native AAC/AC3 files support byte-range seeking.
-- **XviD `.avi`** files won't play on iPhone (no transcode for those).
+- **XviD/DivX `.avi`** files are auto-transcoded to H.264 (HLS in-app,
+  progressive MP4 for offline downloads), so they play on iPhone — expect a
+  startup delay while ffmpeg spins up on the Pi.
 - **NTFS corruption**: `/mnt/ketas/serials/Sherlock/` has a stale
   `Fantastic.Beasts…[rarbg]` folder that returns `Input/output error` on delete.
   Drive may need `chkdsk` on a Windows machine.
