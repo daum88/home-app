@@ -354,10 +354,18 @@ struct MediaItemDetailSheet: View {
     @State private var showDeleteConfirm = false
     @State private var deleting = false
     @State private var playerPresentation: PlayerPresentation?
-    @State private var downloading = false
     @State private var downloadStatus: String?
-    @State private var downloadFilename = ""
     @ObservedObject private var downloads = DownloadManager.shared
+
+    /// Deterministic download filename for this item (matches DownloadManager's key).
+    private var downloadFilename: String {
+        (item.path as NSString?)?.lastPathComponent ?? "\(item.name).mp4"
+    }
+
+    /// True while this item's download is in progress — survives navigation.
+    private var isDownloading: Bool {
+        downloads.activeDownloads.contains(downloadFilename)
+    }
 
     var body: some View {
         ScrollView {
@@ -402,16 +410,17 @@ struct MediaItemDetailSheet: View {
                         .tint(Palette.accent)
 
                         Button { Task { await download() } } label: {
-                            Label(downloadStatus ?? "Download", systemImage: downloading ? "arrow.down.circle.dotted" : "arrow.down.circle")
+                            Label(isDownloading ? "Downloading…" : (downloadStatus ?? "Download"),
+                                  systemImage: isDownloading ? "arrow.down.circle.dotted" : "arrow.down.circle")
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 6)
                         }
                         .buttonStyle(.bordered)
-                        .disabled(downloading)
+                        .disabled(isDownloading)
                     }
 
                     // Download progress
-                    if downloading {
+                    if isDownloading {
                         let p = downloads.progress[downloadFilename] ?? 0
                         VStack(alignment: .leading, spacing: 6) {
                             if p > 0 {
@@ -530,16 +539,13 @@ struct MediaItemDetailSheet: View {
     }
 
     private func download() async {
-        downloading = true
-        downloadStatus = "Downloading…"
-        defer { downloading = false }
+        downloadStatus = nil
         guard let path = item.path, let url = API.streamURL(path: path, download: true) else {
             downloadStatus = "Download unavailable"
             errorMessage = "No downloadable file path is available."
             return
         }
         let filename = (path as NSString).lastPathComponent
-        downloadFilename = filename
         do {
             try await DownloadManager.shared.download(name: item.name, filename: filename, remoteURL: url)
             Haptics.success()
