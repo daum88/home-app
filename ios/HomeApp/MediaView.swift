@@ -411,13 +411,22 @@ struct MediaItemDetailSheet: View {
                     }
 
                     // Download progress
-                    if downloading, let p = downloads.progress[downloadFilename] {
+                    if downloading {
+                        let p = downloads.progress[downloadFilename] ?? 0
                         VStack(alignment: .leading, spacing: 6) {
-                            ProgressView(value: p)
-                                .progressViewStyle(.linear)
-                                .tint(Theme.teal)
-                            Text("Downloading… \(Int(p * 100))%")
-                                .font(.caption).foregroundStyle(.secondary)
+                            if p > 0 {
+                                ProgressView(value: p)
+                                    .progressViewStyle(.linear)
+                                    .tint(Theme.teal)
+                                Text("Downloading… \(Int(p * 100))%")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                HStack(spacing: 8) {
+                                    ProgressView().controlSize(.small).tint(Theme.teal)
+                                    Text("Preparing…")
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                            }
                         }
                     }
 
