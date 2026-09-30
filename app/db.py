@@ -191,7 +191,10 @@ def inventory_add(
         location = position
     elif category == "frozen":
         location = "freezer"
-    elif category in {"pantry", "drinks", "snacks"}:
+    elif category in {"root veg", "bakery", "cereal", "grains & pasta", "baking",
+                      "oils & sauces", "spices & salt", "nuts & seeds", "coffee & tea",
+                      "canned & jars", "sweet spreads", "snacks", "baby food",
+                      "soft drinks", "alcohol", "non-food", "pantry", "drinks"}:
         location = "pantry"
     else:
         location = "fridge"
