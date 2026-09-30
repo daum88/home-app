@@ -54,7 +54,7 @@ async def lookup_barcode(barcode: str) -> dict[str, Any]:
     }
 
 
-async def add_barcode_item(barcode: str) -> dict[str, Any]:
+async def add_barcode_item(barcode: str, position: str = "fridge") -> dict[str, Any]:
     """Look up a barcode and add the product to the fridge inventory with expiry."""
     info = await lookup_barcode(barcode)
     days = info.get("shelf_life_days")
@@ -66,6 +66,7 @@ async def add_barcode_item(barcode: str) -> dict[str, Any]:
         brands=info["brands"],
         category=info["category"],
         expires_on=expires,
+        position=position,
     )
     # Local SQLite is canonical; hOn inventory is import-only.
     return {
@@ -73,4 +74,5 @@ async def add_barcode_item(barcode: str) -> dict[str, Any]:
         "brands": info["brands"],
         "category": info["category"],
         "expires_on": expires,
+        "position": position,
     }

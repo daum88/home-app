@@ -457,6 +457,7 @@ struct BarcodeScanSheet: View {
     @State private var product: BarcodeProduct?
     @State private var errorMessage: String?
     @State private var adding = false
+    @State private var position = "fridge"
 
     var body: some View {
         NavigationStack {
@@ -471,10 +472,16 @@ struct BarcodeScanSheet: View {
                             Text("Expires in ~\(d) days").font(.caption).foregroundStyle(.secondary)
                         }
                     }
+                    Picker("Where", selection: $position) {
+                        Label("Fridge", systemImage: "refrigerator").tag("fridge")
+                        Label("Freezer", systemImage: "snowflake").tag("freezer")
+                        Label("Pantry", systemImage: "cabinet").tag("pantry")
+                    }
+                    .pickerStyle(.segmented)
                     Button {
                         Task { await add() }
                     } label: {
-                        if adding { ProgressView() } else { Text("Add to fridge") }
+                        if adding { ProgressView() } else { Text("Add to \(position)") }
                     }
                     .buttonStyle(.borderedProminent).buttonBorderShape(.capsule).disabled(adding)
                     Button("Scan another") { product = nil; errorMessage = nil }
@@ -513,7 +520,7 @@ struct BarcodeScanSheet: View {
         guard let code = product?.barcode else { return }
         adding = true
         do {
-            _ = try await API.run("add_barcode_item", args: ["barcode": code]) as AddResult
+            _ = try await API.run("add_barcode_item", args: ["barcode": code, "position": position]) as AddResult
             Haptics.success()
             await onAdded()
             dismiss()
