@@ -54,14 +54,22 @@ final class DownloadManager: NSObject, ObservableObject {
         cleanTemporaryFiles()
     }
 
-    /// Remove stale partial-download files from the app's temp folder.
-    /// Background downloads leave these behind when interrupted, which is what
-    /// bloats the app's storage after repeated/failed downloads.
+    /// Remove stale partial-download files from the app's temp folder and
+    /// URLSession's background-download cache. Interrupted downloads leave
+    /// multi-GB fragments in both places, which is what bloats app storage.
     func cleanTemporaryFiles() {
-        let tmp = FileManager.default.temporaryDirectory
-        let urls = (try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? []
-        for url in urls {
-            try? FileManager.default.removeItem(at: url)
+        let fm = FileManager.default
+        // 1. App temp directory
+        let tmp = fm.temporaryDirectory
+        for url in (try? fm.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? [] {
+            try? fm.removeItem(at: url)
+        }
+        // 2. URLSession background-download cache (leftover partial downloads)
+        if let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            let bg = caches.appendingPathComponent("com.apple.nsurlsessiond/Downloads/com.mattiasdaum.home")
+            for url in (try? fm.contentsOfDirectory(at: bg, includingPropertiesForKeys: nil)) ?? [] {
+                try? fm.removeItem(at: url)
+            }
         }
     }
 
