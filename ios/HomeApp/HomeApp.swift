@@ -6,6 +6,7 @@ struct HomeApp: App {
         WindowGroup {
             ContentView()
                 .tint(Palette.accent)
+                .task { DownloadManager.shared.cleanTemporaryFiles() }
         }
     }
 }

@@ -51,6 +51,18 @@ final class DownloadManager: NSObject, ObservableObject {
         config.sessionSendsLaunchEvents = true
         config.isDiscretionary = false
         session = URLSession(configuration: config, delegate: self, delegateQueue: nil)
+        cleanTemporaryFiles()
+    }
+
+    /// Remove stale partial-download files from the app's temp folder.
+    /// Background downloads leave these behind when interrupted, which is what
+    /// bloats the app's storage after repeated/failed downloads.
+    func cleanTemporaryFiles() {
+        let tmp = FileManager.default.temporaryDirectory
+        let urls = (try? FileManager.default.contentsOfDirectory(at: tmp, includingPropertiesForKeys: nil)) ?? []
+        for url in urls {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     func refresh() {
@@ -74,6 +86,7 @@ final class DownloadManager: NSObject, ObservableObject {
         let sourceName = DownloadFilename.resolved(source: filename.isEmpty ? name : filename, suggested: nil)
         let dest = try downloadDirectory().appendingPathComponent(sourceName)
         if FileManager.default.fileExists(atPath: dest.path) { refresh(); return }
+        guard !activeDownloads.contains(sourceName) else { return }  // don't start a duplicate
 
         activeDownloads.insert(sourceName)
         progress[sourceName] = 0
