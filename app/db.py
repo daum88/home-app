@@ -187,7 +187,14 @@ def inventory_add(
     receipt_line: int | None = None,
 ) -> int:
     """Add one package to the canonical inventory, deduping receipt lines only."""
-    location = position or ("pantry" if category in {"pantry", "drinks", "snacks"} else "fridge")
+    if position:
+        location = position
+    elif category == "frozen":
+        location = "freezer"
+    elif category in {"pantry", "drinks", "snacks"}:
+        location = "pantry"
+    else:
+        location = "fridge"
     with _lock:
         conn = _connect()
         try:

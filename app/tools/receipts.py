@@ -49,8 +49,10 @@ _UNIT_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*(KG|G|L|ML|DL|CL|TK|PK|GR|MM|CM|M)\b
 _RULES: list[tuple[str, int | None, list[str]]] = [
     ("non-food", None, ["paber", "kott", "salvratik", "kile", "rinnafil", "rinnahoidja",
                         "kuunal", "patarei", "pesu", "nõudepesu"]),
-    ("snacks", 90, ["kupsis", "sokolaad", "komm", "krops", "popcorn", "jaatis",
-                    "snakk", "kupsise", "šokolaad", "küpsis", "krõps", "jäätis"]),
+    ("frozen", 180, ["jaatis", "jaatise", "sorbet", "kulmut", "sugavkulm",
+                     "pitsa", "pizza", "pelmeen", "friikartul", "smuuti"]),
+    ("snacks", 90, ["kupsis", "sokolaad", "komm", "krops", "popcorn",
+                    "snakk", "kupsise", "šokolaad", "küpsis", "krõps"]),
     ("eggs", 21, ["muna"]),
     ("bakery", 4, ["leib", "sai", "sepik", "kukkel", "baguette", "croissant", "röst"]),
     ("drinks", 90, ["mahl", "limonaad", "karastus", "vesi", "olu", "vein", "siider",
@@ -79,7 +81,8 @@ _OFF_CAT: list[tuple[str, str, int]] = [
     ("flour", "pantry", 180), ("beverage", "drinks", 90), ("juice", "drinks", 90),
     ("soda", "drinks", 90), ("water", "drinks", 90), ("wine", "drinks", 180),
     ("beer", "drinks", 90), ("alcohol", "drinks", 180), ("snack", "snacks", 90),
-    ("chocolate", "snacks", 90), ("confection", "snacks", 90), ("ice-cream", "snacks", 90),
+    ("chocolate", "snacks", 90), ("confection", "snacks", 90), ("ice-cream", "frozen", 180),
+    ("frozen", "frozen", 180), ("frozen food", "frozen", 180),
     ("popcorn", "snacks", 90),
 ]
 
