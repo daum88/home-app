@@ -10,7 +10,7 @@ struct ContentView: View {
     @StateObject private var notifications = NotificationMonitor()
 
     enum Tab: String, CaseIterable {
-        case home, media, food, assistant
+        case home, media, food, study, assistant
     }
 
     var body: some View {
@@ -54,6 +54,7 @@ struct ContentView: View {
         case .home: DevicesView(state: deviceState)
         case .media: MediaView()
         case .food: FoodView()
+        case .study: StudyView()
         case .assistant: AssistantView(model: assistantModel)
         }
     }
@@ -97,6 +98,7 @@ struct ContentView: View {
         case .home: return "house"
         case .media: return "play.rectangle"
         case .food: return "fork.knife"
+        case .study: return "graduationcap"
         case .assistant: return "bubble.left.and.bubble.right"
         }
     }

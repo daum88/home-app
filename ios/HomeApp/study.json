@@ -1,0 +1,503 @@
+{
+  "semester": "Sügis 2026/27",
+  "generated": "2026-10-01",
+  "courses": [
+    {
+      "id": "ml",
+      "code": "MTAT.03.227",
+      "name": "Masinõpe",
+      "english": "Machine Learning",
+      "source": "courses.cs.ut.ee",
+      "grading": [
+        {
+          "label": "Homeworks (6 × 10)",
+          "value": "60 pts"
+        },
+        {
+          "label": "Paper summary",
+          "value": "15 pts"
+        },
+        {
+          "label": "Team project",
+          "value": "25 pts"
+        },
+        {
+          "label": "Pass (grade E)",
+          "value": "≥ 51 pts"
+        },
+        {
+          "label": "Final exam",
+          "value": "none"
+        }
+      ],
+      "schedule": [
+        {
+          "day": "Mon",
+          "time": "10:15–12:00",
+          "room": "1037",
+          "type": "Lecture"
+        },
+        {
+          "day": "Mon",
+          "time": "12:15–14:00",
+          "room": "2010",
+          "type": "Practice"
+        }
+      ],
+      "exams": [],
+      "deadlines": [
+        {
+          "what": "HW1 — supervised learning",
+          "date": "2026-09-20",
+          "time": "23:59"
+        },
+        {
+          "what": "HW2 — unsupervised learning",
+          "date": "2026-10-04",
+          "time": "23:59"
+        },
+        {
+          "what": "HW3 — deep learning",
+          "date": "2026-10-18",
+          "time": "23:59"
+        },
+        {
+          "what": "Project plan",
+          "date": "2026-10-18",
+          "time": "23:59"
+        },
+        {
+          "what": "HW4 — regularisation",
+          "date": "2026-11-01",
+          "time": "23:59"
+        },
+        {
+          "what": "HW5 — ensemble learning",
+          "date": "2026-11-15",
+          "time": "23:59"
+        },
+        {
+          "what": "HW6 — performance metrics",
+          "date": "2026-12-06",
+          "time": "23:59"
+        },
+        {
+          "what": "Team evaluation",
+          "date": "2026-12-20",
+          "time": "23:59"
+        }
+      ]
+    },
+    {
+      "id": "atm",
+      "code": "LTAT.02.006",
+      "name": "Andmeteaduse meetodid",
+      "english": "Methods in Data Science",
+      "source": "courses.cs.ut.ee",
+      "grading": [
+        {
+          "label": "Kodutööd (6)",
+          "value": "6 × Jupyter"
+        },
+        {
+          "label": "Kontrolltööd",
+          "value": "26.10"
+        },
+        {
+          "label": "Eksam",
+          "value": "15.12"
+        }
+      ],
+      "schedule": [
+        {
+          "day": "Mon",
+          "time": "14:15–16:00",
+          "room": "2048",
+          "type": "Lecture"
+        },
+        {
+          "day": "Wed",
+          "time": "14:15–16:00",
+          "room": "2040",
+          "type": "Practice"
+        }
+      ],
+      "exams": [
+        {
+          "what": "Kontrolltööd (3 groups)",
+          "date": "2026-10-26",
+          "time": "14:15",
+          "room": "1018 / 1005 / 2048"
+        },
+        {
+          "what": "Eksam",
+          "date": "2026-12-15",
+          "time": "14:00",
+          "room": "2046"
+        }
+      ],
+      "deadlines": [
+        {
+          "what": "Kodutöö 1",
+          "date": "2026-09-21",
+          "time": "12:00"
+        },
+        {
+          "what": "Kodutöö 2",
+          "date": "2026-10-05",
+          "time": "12:00"
+        },
+        {
+          "what": "Kodutöö 3",
+          "date": "2026-10-19",
+          "time": "12:00"
+        },
+        {
+          "what": "Kodutöö 4",
+          "date": "2026-11-09",
+          "time": "12:00"
+        },
+        {
+          "what": "Kodutöö 5",
+          "date": "2026-11-23",
+          "time": "12:00"
+        },
+        {
+          "what": "Kodutöö 6",
+          "date": "2026-12-07",
+          "time": "12:00"
+        }
+      ]
+    },
+    {
+      "id": "dataviz",
+      "code": "LTAT.02.008",
+      "name": "Andmete visualiseerimine",
+      "english": "Data Visualization & Storytelling",
+      "source": "courses.cs.ut.ee",
+      "grading": [
+        {
+          "label": "Kodutööd (3)",
+          "value": "R notebooks"
+        },
+        {
+          "label": "Projekt",
+          "value": "4.01"
+        }
+      ],
+      "schedule": [
+        {
+          "day": "Wed",
+          "time": "12:15–14:00",
+          "room": "1019",
+          "type": "Lecture"
+        },
+        {
+          "day": "Thu",
+          "time": "12:15–14:00",
+          "room": "1019",
+          "type": "Practice (bring laptop)"
+        }
+      ],
+      "exams": [],
+      "deadlines": [
+        {
+          "what": "Kodutöö 1 (Maarja teemad)",
+          "date": "2026-10-04",
+          "time": "23:59"
+        },
+        {
+          "what": "Kodutöö 2",
+          "date": "2026-11-08",
+          "time": "23:59"
+        },
+        {
+          "what": "Kodutöö 3",
+          "date": "2026-12-17",
+          "time": "23:59"
+        },
+        {
+          "what": "Projekt",
+          "date": "2027-01-04",
+          "time": "23:59"
+        }
+      ]
+    },
+    {
+      "id": "ba",
+      "code": "MTAT.03.310",
+      "name": "Ärianalüüs",
+      "english": "Business Analysis",
+      "source": "Moodle + courses.cs.ut.ee",
+      "grading": [
+        {
+          "label": "Project assignment (Eltron)",
+          "value": "20"
+        },
+        {
+          "label": "Quizzes (13 weekly)",
+          "value": "25"
+        },
+        {
+          "label": "Seminars",
+          "value": "10"
+        },
+        {
+          "label": "Written exam (3 parts)",
+          "value": "50"
+        },
+        {
+          "label": "Project exam",
+          "value": "50"
+        }
+      ],
+      "schedule": [
+        {
+          "day": "Fri",
+          "time": "10:15–12:00",
+          "room": "1008 · Zoom",
+          "type": "Lecture"
+        },
+        {
+          "day": "Fri",
+          "time": "12:15–14:00",
+          "room": "1019",
+          "type": "Practice"
+        }
+      ],
+      "exams": [
+        {
+          "what": "Project Exam",
+          "date": "2026-12-20",
+          "time": "20:23",
+          "room": ""
+        },
+        {
+          "what": "Written Exam (Parts 1–3)",
+          "date": "2027-01-05",
+          "time": "07:19",
+          "room": ""
+        }
+      ],
+      "deadlines": [
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-10-02",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 4 closes",
+          "date": "2026-10-02",
+          "time": "10:15"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-10-09",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 5 closes",
+          "date": "2026-10-09",
+          "time": "10:15"
+        },
+        {
+          "what": "6th Assignment - Business Needs, Scope and Process is due",
+          "date": "2026-10-11",
+          "time": "22:23"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-10-16",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 6 closes",
+          "date": "2026-10-16",
+          "time": "10:15"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-10-23",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 7 closes",
+          "date": "2026-10-23",
+          "time": "10:15"
+        },
+        {
+          "what": "Seminar assignment submission (07 Current State Analysis II Metrics and IT, Data, and Technology) is due",
+          "date": "2026-10-25",
+          "time": "20:23"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-10-30",
+          "time": "10:00"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-11-06",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 9 closes",
+          "date": "2026-11-06",
+          "time": "10:15"
+        },
+        {
+          "what": "Seminar assignment submission (08 Problem Analysis) is due",
+          "date": "2026-11-08",
+          "time": "20:23"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-11-13",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 10 closes",
+          "date": "2026-11-13",
+          "time": "10:15"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-11-20",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 11 closes",
+          "date": "2026-11-20",
+          "time": "10:15"
+        },
+        {
+          "what": "Project Assignment Submission tähtaeg",
+          "date": "2026-11-20",
+          "time": "23:59"
+        },
+        {
+          "what": "Seminar 9 assignment submission (09 Future State Analysis &amp; Risk Assessment) is due",
+          "date": "2026-11-22",
+          "time": "20:23"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-11-27",
+          "time": "10:00"
+        },
+        {
+          "what": "Quiz 12 closes",
+          "date": "2026-11-27",
+          "time": "10:15"
+        },
+        {
+          "what": "Quiz 8 closes",
+          "date": "2026-11-30",
+          "time": "10:15"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-12-04",
+          "time": "10:00"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-12-11",
+          "time": "10:00"
+        },
+        {
+          "what": "Business Analysis Lecture Zoom  broadcasting",
+          "date": "2026-12-18",
+          "time": "10:00"
+        },
+        {
+          "what": "Project Exam is due",
+          "date": "2026-12-20",
+          "time": "20:23"
+        },
+        {
+          "what": "Part 1 - General Multiple Choice Questions closes",
+          "date": "2027-01-05",
+          "time": "07:19"
+        },
+        {
+          "what": "Part 2 - Scenario-Based Questions closes",
+          "date": "2027-01-05",
+          "time": "08:04"
+        },
+        {
+          "what": "Part 3 - Business Analysis Case Study is due",
+          "date": "2027-01-05",
+          "time": "09:44"
+        },
+        {
+          "what": "Quiz 13 closes",
+          "date": "2027-12-04",
+          "time": "10:15"
+        }
+      ]
+    },
+    {
+      "id": "crm",
+      "code": "SVMJ.09.002",
+      "name": "Kliendisuhete juhtimine",
+      "english": "Customer Relationship Management",
+      "source": "Moodle",
+      "grading": [
+        {
+          "label": "Group project 1 — video interview",
+          "value": "20"
+        },
+        {
+          "label": "Video watching",
+          "value": "15"
+        },
+        {
+          "label": "Group project 2 — suggestions",
+          "value": "20"
+        },
+        {
+          "label": "Pipedrive report",
+          "value": "15"
+        },
+        {
+          "label": "Eksam",
+          "value": "9.12"
+        }
+      ],
+      "schedule": [
+        {
+          "day": "Wed",
+          "time": "10:15–12:00",
+          "room": "2046 · hybrid",
+          "type": "Lecture / seminar"
+        }
+      ],
+      "exams": [
+        {
+          "what": "Eksam / arvestus",
+          "date": "2026-12-09",
+          "time": "10:15",
+          "room": "2046"
+        }
+      ],
+      "deadlines": [
+        {
+          "what": "Group project 1 — video interview",
+          "date": "2026-10-30",
+          "time": "23:59"
+        },
+        {
+          "what": "Group project 2: suggestions to the company. Deadline November 15 is due",
+          "date": "2026-11-15",
+          "time": "23:59"
+        },
+        {
+          "what": "Pipedrive report upload is due",
+          "date": "2026-11-24",
+          "time": "23:59"
+        }
+      ]
+    }
+  ]
+}

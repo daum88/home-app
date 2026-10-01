@@ -12,6 +12,7 @@
 		17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 352224D39A3938B1CE796D8C /* Shortcuts.swift */; };
 		17E2CDCAC58F0EAC63C6E7D1 /* Server.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6019896BA2330D3F2F58E1BA /* Server.swift */; };
 		1CC031F8D7F157A9840605CC /* CookModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9FFFE2B8B22EE3E8E1DDCAA /* CookModeView.swift */; };
+		1D3EABECFCE07E6FBB1DA1BE /* StudyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2F8A18164A4173A2CCC9597 /* StudyView.swift */; };
 		279515DD10EDED77C8490794 /* WasherAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A52084F6485437E5C39A360A /* WasherAttributes.swift */; };
 		2800F6F58885E3CE93565B44 /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F79B37DB86C3AE5A5353BDC /* Notifications.swift */; };
 		2A30AB00A48CDC94CFB66235 /* Design.swift in Sources */ = {isa = PBXBuildFile; fileRef = 271902500543ABF2D32551DB /* Design.swift */; };
@@ -20,6 +21,7 @@
 		3309CFADD8447D5B81DA12AA /* PlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A119CD81B9A14E68B932B5D9 /* PlayerView.swift */; };
 		3330503F8F9D5CF72B6CD208 /* ShoppingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */; };
 		3833ABA9A55FE1393FD57A9F /* HomeWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7355554CA94E7DD487573F /* HomeWidgetBundle.swift */; };
+		479BCD7655BD6E9A068F289E /* study.json in Resources */ = {isa = PBXBuildFile; fileRef = 7D48C9BB744BE47C03683B57 /* study.json */; };
 		49D7E8136C8C7756667ED8CE /* HomeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE57E68052B4BA0C6D78A4E4 /* HomeApp.swift */; };
 		4CC92D00148908E2BF658E4C /* ExpiringWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0D632875BD8596D37E8227F /* ExpiringWidget.swift */; };
 		4EDC639383DE561360EA2821 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D26D831E6DE5D3E9115D1BD /* ContentView.swift */; };
@@ -97,10 +99,12 @@
 		6D26D831E6DE5D3E9115D1BD /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6F79B37DB86C3AE5A5353BDC /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		78AB22B863DD3087C5C38D89 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7D48C9BB744BE47C03683B57 /* study.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = study.json; sourceTree = "<group>"; };
 		8173EEA7C4ACD6333A484B80 /* WasherLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherLiveActivity.swift; sourceTree = "<group>"; };
 		891636520B64B5D54313B833 /* HomeCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = HomeCore; path = Packages/HomeCore; sourceTree = SOURCE_ROOT; };
 		929BFBD50EEE7484DF87A122 /* HomeWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = HomeWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A119CD81B9A14E68B932B5D9 /* PlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerView.swift; sourceTree = "<group>"; };
+		A2F8A18164A4173A2CCC9597 /* StudyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudyView.swift; sourceTree = "<group>"; };
 		A52084F6485437E5C39A360A /* WasherAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WasherAttributes.swift; sourceTree = "<group>"; };
 		AE7355554CA94E7DD487573F /* HomeWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetBundle.swift; sourceTree = "<group>"; };
 		B11E52F35BCEC2A62DE22FA3 /* DeviceState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceState.swift; sourceTree = "<group>"; };
@@ -162,6 +166,8 @@
 				0D902A19FB1C2D642C8F3EB4 /* ShoppingView.swift */,
 				352224D39A3938B1CE796D8C /* Shortcuts.swift */,
 				264E21768AB1066F2AEB532B /* SpendingView.swift */,
+				7D48C9BB744BE47C03683B57 /* study.json */,
+				A2F8A18164A4173A2CCC9597 /* StudyView.swift */,
 				F9574704ADCAAD548E321FF0 /* WasherLiveActivityManager.swift */,
 			);
 			path = HomeApp;
@@ -331,6 +337,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				ECBCF43B919C70C6E766C965 /* Assets.xcassets in Resources */,
+				479BCD7655BD6E9A068F289E /* study.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -361,6 +368,7 @@
 				3330503F8F9D5CF72B6CD208 /* ShoppingView.swift in Sources */,
 				17D07AFA5263493E7E91AD2B /* Shortcuts.swift in Sources */,
 				C4EAC8D18D41FFBD5DABE08C /* SpendingView.swift in Sources */,
+				1D3EABECFCE07E6FBB1DA1BE /* StudyView.swift in Sources */,
 				309D38140572092491F19360 /* WasherAttributes.swift in Sources */,
 				796B1619831E8CCFB6A6C27E /* WasherLiveActivityManager.swift in Sources */,
 			);
