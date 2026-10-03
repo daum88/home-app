@@ -59,19 +59,39 @@ async def electricity_price() -> dict[str, Any]:
     now = datetime.now(TZ)
     try:
         async with httpx.AsyncClient(timeout=12) as client:
+            # Live "current" price = the most recently settled 15-min actual. The
+            # bare API returns only past actuals, unlike the windowed query which
+            # mixes settled actuals with intra-day forecasts for unexpired blocks.
+            actuals = await _get(client)
             # Today's full day (past actuals + future day-ahead). The bare API
             # returns only past actuals, so ask for an explicit midnight→midnight
             # window to get all 24 hours.
             today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
             today_end = today_start + timedelta(days=1)
-            today_rows = _hourly(await _get(client, _window(today_start, today_end)))
+            today_raw = _hourly(await _get(client, _window(today_start, today_end)))
             # Tomorrow's day-ahead (published in the early afternoon, may be partial).
-            tomorrow_rows = _hourly(await _get(client, _window(today_end, today_end + timedelta(days=1))))
+            tomorrow_raw = _hourly(await _get(client, _window(today_end, today_end + timedelta(days=1))))
     except httpx.HTTPError as err:
         raise ToolError(f"can't reach Elering ({err})") from err
 
+    # Elering's windowed query is end-inclusive: it also returns the first 15-min
+    # block of the *next* day, which _hourly() folds into a bogus extra "00:00"
+    # hour (a 25-hour "day"). Keep only hours whose local date is the requested day.
+    def _keep(rows: list[dict], day: datetime) -> list[dict]:
+        return [p for p in rows if datetime.fromtimestamp(p["time"], TZ).date() == day.date()]
+
+    today_rows = _keep(today_raw, today_start)
+    tomorrow_rows = _keep(tomorrow_raw, today_end)
+
+    current_price = round(float(actuals[-1]["price"]) / 10, 2) if actuals else None
+
     now_hour = _hour_ts(int(now.timestamp()))
-    current = next((p for p in today_rows if p["time"] == now_hour), None)
+    # Make the current hour's bar show the live settled price (not the mixed
+    # actual+forecast average) so the graph and the big number agree.
+    if current_price is not None:
+        for p in today_rows:
+            if p["time"] == now_hour:
+                p["price"] = current_price
 
     def stats(rows: list[dict]) -> tuple[float | None, float | None, float | None]:
         if not rows:
@@ -88,7 +108,7 @@ async def electricity_price() -> dict[str, Any]:
     upcoming_24 = upcoming[:24]
 
     result = {
-        "current_cents_per_kwh": current["price"] if current else None,
+        "current_cents_per_kwh": current_price,
         "today_min": today_min,
         "today_max": today_max,
         "today_avg": today_avg,
