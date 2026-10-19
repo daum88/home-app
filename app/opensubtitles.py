@@ -2,7 +2,7 @@
 
 Finds the right subtitle by the OpenSubtitles *moviehash* (MD5 of the first +
 last 64 KiB of the file) so the timings match the exact release, then falls
-back to a filename search. Prefers Estonian, then English.
+back to a filename search. Prefers English, then Estonian.
 
 Disabled (no-op) until OPENSUBTITLES_API_KEY + USER + PASS are set in .env.
 """
@@ -110,7 +110,7 @@ async def _download(file_id: int) -> str | None:
         return None
 
 
-async def fetch_srt(path: str, languages: tuple[str, ...] = ("et", "en")) -> str | None:
+async def fetch_srt(path: str, languages: tuple[str, ...] = ("en", "et")) -> str | None:
     """Find + save a subtitle next to the file. Returns the .srt text, or None."""
     if not enabled():
         return None

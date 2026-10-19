@@ -11,6 +11,8 @@ struct MediaView: View {
     @State private var playerPresentation: PlayerPresentation?
     @State private var showDownloads = false
     @State private var showOnDevice = false
+    @State private var scrollOffset: CGFloat = 0
+    @State private var continueHeight: CGFloat = 190
 
     var body: some View {
         NavigationStack {
@@ -18,7 +20,11 @@ struct MediaView: View {
                 if !continueItems.isEmpty {
                     ContinueWatchingRow(items: continueItems, onPlay: { play($0) },
                                         onChanged: { Task { await loadContinue() } })
-                        .padding(.top, 8)
+                        .onGeometryChange(for: CGFloat.self) { proxy in proxy.size.height } action: { continueHeight = $0 }
+                        .frame(height: continueRowHeight, alignment: .top)
+                        .opacity(1 - collapse)
+                        .clipped()
+                        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: scrollOffset)
                 }
 
                 Picker("Section", selection: $section) {
@@ -30,10 +36,11 @@ struct MediaView: View {
                 .padding(.vertical, 8)
 
                 switch section {
-                case .movies: MediaLibraryView(mediaType: "movie")
-                case .series: MediaLibraryView(mediaType: "series")
+                case .movies: MediaLibraryView(mediaType: "movie", scrollOffset: $scrollOffset)
+                case .series: MediaLibraryView(mediaType: "series", scrollOffset: $scrollOffset)
                 }
             }
+            .onChange(of: section) { _ in scrollOffset = 0 }
             .matteBackground()
             .navigationTitle("Media")
             .navigationBarTitleDisplayMode(.inline)
@@ -52,6 +59,15 @@ struct MediaView: View {
                        path: p.path, kind: p.kind, image: p.image,
                        seriesId: p.seriesId, season: p.season, episode: p.episode)
         }
+    }
+
+    /// Fraction (0…1) the Continue-watching row collapses by as the grid scrolls.
+    private var collapse: Double {
+        min(max(scrollOffset / 140, 0), 1)
+    }
+
+    private var continueRowHeight: CGFloat {
+        collapse >= 1 ? 0 : continueHeight * CGFloat(1 - collapse)
     }
 
     private func loadContinue() async {
@@ -195,6 +211,7 @@ struct PosterCell: View {
 
 struct MediaLibraryView: View {
     let mediaType: String
+    @Binding var scrollOffset: CGFloat
     @State private var items: [JellyfinItem] = []
     @State private var loading = true
     @State private var errorMessage: String?
@@ -268,6 +285,11 @@ struct MediaLibraryView: View {
                     }
                 }
                 .refreshable { await load() }
+                .onScrollGeometryChange(for: CGFloat.self) { geo in
+                    geo.contentOffset.y
+                } action: { _, newValue in
+                    scrollOffset = newValue
+                }
                 .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search \(mediaType == "series" ? "series" : "movies")")
             }
         }

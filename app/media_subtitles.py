@@ -82,8 +82,16 @@ async def media_subtitles(path: str = "") -> Response:
             return Response(content=srt_to_vtt(fetched), media_type="text/vtt",
                             headers={"Cache-Control": "no-cache"})
         raise HTTPException(status_code=404, detail="no subtitles")
-    # prefer Estonian subtitles
-    srt_files.sort(key=lambda f: 0 if ("est" in f.lower() or "eesti" in f.lower()) else 1)
+    # Prefer English subtitles; treat unmarked files as English, push explicit
+    # Estonian ("-est"/"eesti") to the end.
+    def _lang_rank(f: str) -> int:
+        fl = f.lower()
+        if "est" in fl or "eesti" in fl:
+            return 2
+        if "eng" in fl or "english" in fl:
+            return 0
+        return 1
+    srt_files.sort(key=_lang_rank)
     try:
         srt = await asyncio.to_thread(_read_srt, srt_files[0])
     except OSError as err:
