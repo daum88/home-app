@@ -89,6 +89,14 @@ final class DownloadManager: NSObject, ObservableObject {
         .sorted { $0.date > $1.date }
     }
 
+    /// True if a file matching this source path is already on the phone.
+    /// Matches by stem (name without extension) so a transcoded download that
+    /// changes the extension (e.g. `.mkv` → `.mp4`) still counts as downloaded.
+    func isDownloaded(sourceFilename: String) -> Bool {
+        let stem = (sourceFilename as NSString).deletingPathExtension
+        return items.contains { $0.name == stem }
+    }
+
     /// Download a remote file into the local Downloads directory.
     func download(name: String, filename: String, remoteURL: URL) async throws {
         let sourceName = DownloadFilename.resolved(source: filename.isEmpty ? name : filename, suggested: nil)

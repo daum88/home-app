@@ -367,6 +367,11 @@ struct MediaItemDetailSheet: View {
         downloads.activeDownloads.contains(downloadFilename)
     }
 
+    /// True once the item is saved on-device — persists across navigation.
+    private var isDownloaded: Bool {
+        downloads.isDownloaded(sourceFilename: downloadFilename)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -410,13 +415,13 @@ struct MediaItemDetailSheet: View {
                         .tint(Palette.accent)
 
                         Button { Task { await download() } } label: {
-                            Label(isDownloading ? "Downloading…" : (downloadStatus ?? "Download"),
-                                  systemImage: isDownloading ? "arrow.down.circle.dotted" : "arrow.down.circle")
+                            Label(isDownloading ? "Downloading…" : (isDownloaded ? "Downloaded ✓" : "Download"),
+                                  systemImage: isDownloading ? "arrow.down.circle.dotted" : (isDownloaded ? "checkmark.circle" : "arrow.down.circle"))
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 6)
                         }
                         .buttonStyle(.bordered)
-                        .disabled(isDownloading)
+                        .disabled(isDownloading || isDownloaded)
                     }
 
                     // Download progress
@@ -492,7 +497,10 @@ struct MediaItemDetailSheet: View {
             }
             .navigationTitle(item.name)
             .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task {
+            downloads.refresh()
+            await load()
+        }
         .confirmationDialog("Delete \"\(item.name)\"?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete from drive", role: .destructive) { Task { await delete() } }
             Button("Cancel", role: .cancel) {}
@@ -540,6 +548,7 @@ struct MediaItemDetailSheet: View {
 
     private func download() async {
         downloadStatus = nil
+        guard !isDownloaded else { return }  // already saved on device
         guard let path = item.path, let url = API.streamURL(path: path, download: true) else {
             downloadStatus = "Download unavailable"
             errorMessage = "No downloadable file path is available."
