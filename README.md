@@ -83,11 +83,14 @@ data/           SQLite DB + cache (git-ignored)
 
 ## Security and testing
 
-The API currently has **no authentication**. Do not expose port 8000 to the
-public internet or an untrusted network: reachable clients can invoke tools,
-read files within `FS_ROOT`, and delete media. Set `FS_ROOT` to the narrowest
-appropriate directory; the default home directory is not a safe sandbox for
-shared access. See `PLAN.md` for the coordinated authentication work.
+The assistant is designed so the LLM never talks to devices directly — it only emits
+tool calls that Python executes through handlers, and integrations return tool errors
+instead of crashing the agent. Input validation is currently handler-specific
+(centralized validation is planned).
+
+The API is a personal, single-user deployment and intentionally has **no authentication
+yet** — it is reachable only over Tailscale, never exposed to the public internet.
+Authentication is tracked as roadmap work in `PLAN.md`.
 
 Run offline backend regression tests with Python 3.11 after installing
 `requirements.txt`:
